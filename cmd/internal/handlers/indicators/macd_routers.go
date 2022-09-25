@@ -1,6 +1,8 @@
-package routers
+package indicators
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+)
 
 func GetMACDRouter(c *gin.Context) {
 

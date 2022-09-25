@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	routers2 "iex-indicators/cmd/internal/routers"
+	"iex-indicators/cmd/internal/handlers/indicators"
+	"iex-indicators/cmd/internal/handlers/lookups"
+	"iex-indicators/cmd/internal/handlers/portfolio_value"
 	"iex-indicators/utils"
 	"log"
 	"net/http"
@@ -16,12 +18,13 @@ import (
 
 func main() {
 	router := gin.Default()
-	router.GET("/rsi", routers2.GetRsiRouter)
-	router.GET("/macd", routers2.GetMACDRouter)
-	router.POST("/lookups/:id", routers2.LoadLookups)
-	router.GET("/lookups/:id", routers2.GetLookups)
+	router.GET("/rsi", indicators.GetRsiRouter)
+	router.GET("/macd", indicators.GetMACDRouter)
+	router.POST("/lookups/:id", lookups.LoadLookups)
+	router.GET("/lookups/:id", lookups.GetLookups)
+	router.POST("/pv", portfolio_value.LoadPortfolioValueHandler)
 
-	// router.Run("localhost:8080")
+	// stock_ind_router.Run("localhost:8080")
 
 	myPort := fmt.Sprintf(":%s", utils.GetEnv("PORT", "8080"))
 

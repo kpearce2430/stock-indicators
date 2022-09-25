@@ -14,10 +14,12 @@
 # Dependency directories (remove the comment below to include it)
 vendor/
 
+# Keith's files
 .DS_Store
 t
 t.sh
 .idea
+*.csv
 
 go_build_iex_indicators_cmd
 

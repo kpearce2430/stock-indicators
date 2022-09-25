@@ -1,4 +1,4 @@
-package routers_test
+package indicators_test
 
 import (
 	"context"
@@ -6,7 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/segmentio/encoding/json"
 	"github.com/stretchr/testify/assert"
-	routers2 "iex-indicators/cmd/internal/routers"
+	"iex-indicators/cmd/internal/handlers/indicators"
+	"iex-indicators/cmd/internal/stock_ind_router"
 	"iex-indicators/couch-database"
 	"iex-indicators/responses"
 	"io/ioutil"
@@ -57,14 +58,14 @@ func TestMain(m *testing.M) {
 	os.Setenv("COUCHDB_PASSWORD", "password")
 
 	router = gin.Default()
-	// TODO: Shut down router...
+	// TODO: Shut down stock_ind_router...
 
 	indicatorDatabase := couch_database.DataStore[responses.CouchIndicatorResponse]("BR")
 	if indicatorDatabase.DatabaseCreate() != true {
 		log.Fatal("Unable to create database")
 	}
-	router.GET("/macd", routers2.GetMACDRouter)
-	router.GET("/rsi", routers2.GetRsiRouter)
+	router.GET("/macd", indicators.GetMACDRouter)
+	router.GET("/rsi", indicators.GetRsiRouter)
 
 	fmt.Println("Starting tests")
 	m.Run()
@@ -95,7 +96,7 @@ func commonCaller(t *testing.T, url string) []byte {
 
 	assert.NotNil(t, responseData, "Response Data was empty?")
 
-	// log.Println(string(responseData))
+	log.Println("responseData>>", string(responseData))
 
 	return responseData
 }
@@ -117,11 +118,13 @@ func TestBasicRouterUpdate(t *testing.T) {
 
 func checkStatus(t *testing.T, body []byte, expectedStatus string) bool {
 
-	response := routers2.StatusObject{}
+	response := stock_ind_router.StatusObject{}
 
 	err := json.Unmarshal(body, &response)
 
 	if err != nil {
+		t.Log("Body:", string(body))
+		t.Log("Unable to unmarshall data", err.Error())
 		t.Fatal("Failure to unmarshall data")
 	}
 
@@ -134,8 +137,9 @@ func TestCouchDBDown(t *testing.T) {
 	os.Setenv("PREFIX", "")
 	os.Setenv("DATABASE_NAME", "junkjunkjunk")
 
-	responseData := commonCaller(t, "/rsi?symbol=HD&indicator=false&action=update")
+	responseData := commonCaller(t, "/rsi?symbol=HD&indicatorOnly=true&action=update")
 
+	t.Log("responseData>>", string(responseData))
 	assert.NotNil(t, responseData, "Invalid Response")
 
 	if !checkStatus(t, responseData, "CouchDB Not Up") {
@@ -155,10 +159,10 @@ func TestNoSymbol(t *testing.T) {
 
 func TestBadIndicator(t *testing.T) {
 
-	responseData := commonCaller(t, "/rsi?symbol=HD&indicator=junk&action=update")
+	responseData := commonCaller(t, "/rsi?symbol=HD&indicatorOnly=junk&action=update")
 
 	assert.NotNil(t, responseData, "Response Data was empty?")
 
-	checkStatus(t, responseData, "Invalid Indicator")
+	checkStatus(t, responseData, "Invalid indicatorOnly")
 
 }

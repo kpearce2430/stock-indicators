@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/imroc/req/v3"
+	"github.com/kelseyhightower/envconfig"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	couchdb_client "iex-indicators/couchdb-client"
@@ -17,6 +18,23 @@ type DatabaseStore[T interface{}] struct {
 	httpClient     *req.Client
 }
 
+func GetDataStoreByDatabaseName[T interface{}](databaseName string) (*DatabaseStore[T], error) {
+
+	var dbConfig DatabaseConfig
+	err := envconfig.Process("", &dbConfig)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	// log.Println("Config>>", dbConfig.Username, dbConfig.CouchDBUrl)
+	dbConfig.DatabaseName = databaseName
+
+	datastore := NewDataStore[T](&dbConfig)
+
+	return &datastore, nil
+
+}
 func NewDataStore[T interface{}](config *DatabaseConfig) DatabaseStore[T] {
 
 	return DatabaseStore[T]{config, http_client.GetDefaultClient(10, false)}
@@ -179,7 +197,7 @@ func (ds DatabaseStore[T]) DocumentCreate(key string, document *T) (string, erro
 func (ds DatabaseStore[T]) DocumentGet(key string) (*T, error) {
 
 	// documentUrl := fmt.Sprintf("%s/%s/%s", ds.couchDBUrl, ds.databaseName, key)
-	log.Println("DocumentGet(", key, ")")
+	// log.Println("DocumentGet(", key, ")")
 	documentUrl := ds.databaseConfig.DocumentURL(key)
 
 	var responseDocument T
@@ -194,14 +212,14 @@ func (ds DatabaseStore[T]) DocumentGet(key string) (*T, error) {
 		Get(documentUrl)
 
 	if err != nil {
-		log.Println("Error:", err)
+		// log.Println("Error:", err)
 		return nil, err
 	}
 
 	if resp.IsError() {
 
 		errString, err := resp.ToString()
-		log.Println("Error:", errString)
+		// log.Println("Error:", errString)
 
 		if err != nil {
 			log.Println("DocumentGet(", key, ") ", err)
@@ -211,7 +229,6 @@ func (ds DatabaseStore[T]) DocumentGet(key string) (*T, error) {
 		return nil, errors.New(errString)
 	}
 
-	log.Println("DocumentGet Returning:", responseDocument)
 	return &responseDocument, nil
 
 }

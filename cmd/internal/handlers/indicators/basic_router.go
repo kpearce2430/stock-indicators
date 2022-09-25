@@ -1,8 +1,9 @@
-package routers
+package indicators
 
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"iex-indicators/cmd/internal/stock_ind_router"
 	couch_database "iex-indicators/couch-database"
 	iex_client "iex-indicators/iex-client"
 	"iex-indicators/responses"
@@ -13,11 +14,7 @@ import (
 	"time"
 )
 
-type StatusObject struct {
-	Status string `json:"status"`
-	Symbol string `json:"symbol,omitempty"`
-}
-
+// BasicRouter performs the underlying routing functions for any of the IEX stock indicators.
 func BasicRouter(c *gin.Context, stockIndicator string) {
 
 	quaryParams := c.Request.URL.Query()
@@ -25,7 +22,6 @@ func BasicRouter(c *gin.Context, stockIndicator string) {
 
 	symbol := quaryParams.Get("symbol")
 	julDate := quaryParams.Get("julDate")
-
 	iexIndicatorOnlyValue := quaryParams.Get("indicatorOnly")
 
 	iexIndicator := false
@@ -34,7 +30,7 @@ func BasicRouter(c *gin.Context, stockIndicator string) {
 	if iexIndicatorOnlyValue != "" {
 		iexIndicator, err = strconv.ParseBool(iexIndicatorOnlyValue)
 		if err != nil {
-			status := StatusObject{Status: "Invalid iexIndicatorOnlyValue"}
+			status := stock_ind_router.StatusObject{Status: "Invalid indicatorOnly"}
 			log.Println(status)
 			c.IndentedJSON(http.StatusBadRequest, status)
 			return
@@ -42,7 +38,6 @@ func BasicRouter(c *gin.Context, stockIndicator string) {
 	}
 
 	iexPeriod := quaryParams.Get("period")
-
 	actionIndicator := quaryParams.Get("action")
 	// action
 	//   none - retrieve current document from couchdb, then iex
@@ -51,7 +46,7 @@ func BasicRouter(c *gin.Context, stockIndicator string) {
 	//
 
 	if symbol == "" {
-		status := StatusObject{Status: "missing symbol"}
+		status := stock_ind_router.StatusObject{Status: "missing symbol"}
 		c.IndentedJSON(http.StatusBadRequest, status)
 		return
 	}
@@ -70,7 +65,17 @@ func BasicRouter(c *gin.Context, stockIndicator string) {
 
 		// log.Fatal(fmt.Sprintf("%s %s %s %s", couch_database.))
 		log.Printf("%s", indicatorDatabase.GetConfig())
-		status := StatusObject{Status: "CouchDB Not Up"}
+		status := stock_ind_router.StatusObject{Status: "CouchDB Not Up"}
+		c.IndentedJSON(http.StatusInternalServerError, status)
+		return
+	}
+
+	_, err = indicatorDatabase.DatabaseExists()
+	if err != nil {
+		log.Printf("%s", indicatorDatabase.GetConfig())
+		// status := stock_ind_router.StatusObject{Status: err.Error()}
+		log.Println("Error:", err.Error())
+		status := stock_ind_router.StatusObject{Status: "CouchDB Not Up"}
 		c.IndentedJSON(http.StatusInternalServerError, status)
 		return
 	}
@@ -84,7 +89,7 @@ func BasicRouter(c *gin.Context, stockIndicator string) {
 		indData, err = callIexIndicator(stockIndicator, key, symbol, iexIndicator, iexPeriod)
 
 		if err != nil {
-			status := StatusObject{Status: "IEX Failure"}
+			status := stock_ind_router.StatusObject{Status: "IEX Failure"}
 			c.IndentedJSON(http.StatusNotFound, status)
 			return
 		}
@@ -93,7 +98,7 @@ func BasicRouter(c *gin.Context, stockIndicator string) {
 
 		if err != nil {
 			log.Println(err)
-			status := StatusObject{Status: fmt.Sprintf("%s", err)}
+			status := stock_ind_router.StatusObject{Status: fmt.Sprintf("%s", err)}
 			c.IndentedJSON(http.StatusInternalServerError, status)
 		}
 
@@ -107,7 +112,7 @@ func BasicRouter(c *gin.Context, stockIndicator string) {
 		indicatorResponse, err := callIexIndicator(stockIndicator, key, symbol, iexIndicator, iexPeriod)
 
 		if err != nil {
-			status := StatusObject{Status: "IEX Failure"}
+			status := stock_ind_router.StatusObject{Status: "IEX Failure"}
 			c.IndentedJSON(http.StatusNotFound, status)
 			return
 		}
@@ -118,7 +123,7 @@ func BasicRouter(c *gin.Context, stockIndicator string) {
 
 		if err != nil {
 			log.Println(err)
-			status := StatusObject{Status: fmt.Sprintf("%s", err)}
+			status := stock_ind_router.StatusObject{Status: fmt.Sprintf("%s", err)}
 			c.IndentedJSON(http.StatusInternalServerError, status)
 		}
 		log.Printf("CouchDB Response: %+v", dbResponse)
@@ -127,7 +132,7 @@ func BasicRouter(c *gin.Context, stockIndicator string) {
 
 		if err != nil {
 			log.Println(err)
-			status := StatusObject{Status: fmt.Sprintf("%s", err)}
+			status := stock_ind_router.StatusObject{Status: fmt.Sprintf("%s", err)}
 			c.IndentedJSON(http.StatusInternalServerError, status)
 		}
 
