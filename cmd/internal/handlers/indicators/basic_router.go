@@ -3,11 +3,11 @@ package indicators
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	couchdatabase "github.com/kpearce2430/keputils/couch-database"
+	"github.com/kpearce2430/keputils/utils"
 	"iex-indicators/cmd/internal/stock_ind_router"
-	couch_database "iex-indicators/couch-database"
 	iex_client "iex-indicators/iex-client"
 	"iex-indicators/responses"
-	"iex-indicators/utils"
 	"log"
 	"net/http"
 	"strconv"
@@ -59,7 +59,7 @@ func BasicRouter(c *gin.Context, stockIndicator string) {
 
 	log.Printf("key: %s", key)
 
-	indicatorDatabase := couch_database.DataStore[responses.CouchIndicatorResponse]("")
+	indicatorDatabase := couchdatabase.DataStore[responses.CouchIndicatorResponse]("")
 
 	if indicatorDatabase.CouchDBUp() != true {
 

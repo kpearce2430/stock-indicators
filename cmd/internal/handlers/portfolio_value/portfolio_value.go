@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/kelseyhightower/envconfig"
+	couch_database "github.com/kpearce2430/keputils/couch-database"
 	lookup_handlers "iex-indicators/cmd/internal/handlers/lookups"
 	"iex-indicators/cmd/internal/stock_ind_router"
-	couch_database "iex-indicators/couch-database"
 	pv "iex-indicators/portfolio_value"
 	"io"
 	"io/ioutil"
@@ -89,12 +89,7 @@ func LoadPortfolioValueHandler(c *gin.Context) {
 
 	julDate := params.Get("juldate")
 
-	if julDate == "" {
-		now := time.Now()
-		julDate = now.Format("2006002")
-	}
-
-	log.Println("julDate:,", julDate, " dbName:", databaseName)
+	// log.Println("julDate:,", julDate, " dbName:", databaseName)
 
 	pvDatabase, err := couch_database.GetDataStoreByDatabaseName[PortfolioValueDatabaseRecord](databaseName)
 	if err != nil {
@@ -136,13 +131,25 @@ func LoadPortfolioValueHandler(c *gin.Context) {
 
 		if foundHeader == false {
 
-			if strings.HasPrefix(record[0], "Price and Holdings") {
+			if julDate == "" && strings.HasPrefix(record[0], "Price and Holdings as of") {
 
 				// if julDate == "" {
 				log.Println("found:", record[0])
 				parts := strings.Split(record[0], ":")
-				log.Println(parts[1])
-				// }
+				str := strings.TrimSpace(parts[1])
+				log.Printf("str[%s]", str)
+
+				date, err := time.Parse("2006-01-02", str)
+
+				if err != nil {
+					log.Println(err)
+					c.IndentedJSON(http.StatusInternalServerError, stock_ind_router.StatusObject{Status: err.Error()})
+					return
+				}
+
+				julDate = date.Format("2006002")
+				log.Println("jul>", julDate)
+
 				continue
 			}
 
@@ -151,6 +158,11 @@ func LoadPortfolioValueHandler(c *gin.Context) {
 				numRows = len(record)
 				foundHeader = true
 				headers = record
+
+				if julDate == "" {
+					date := time.Now()
+					julDate = date.Format("2006002")
+				}
 			}
 
 		} else {

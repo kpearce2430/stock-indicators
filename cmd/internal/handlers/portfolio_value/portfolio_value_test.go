@@ -5,11 +5,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	couch_database "github.com/kpearce2430/keputils/couch-database"
 	"github.com/segmentio/encoding/json"
 	"github.com/stretchr/testify/assert"
 	lookup_handlers "iex-indicators/cmd/internal/handlers/lookups"
 	"iex-indicators/cmd/internal/handlers/portfolio_value"
-	couch_database "iex-indicators/couch-database"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -28,21 +28,21 @@ JUNK INC COM,JUNK
 DEAD INC COM,DEAD
 Mondelez International Inc,MDLZ`
 
-var csvPortfolioValueData string = `xInvesting - Portfolio Value - Group by Security
-x
-xCreated: 2021-12-11
-x
-xPrice and Holdings as of: 2021-12-11
-x
+var csvPortfolioValueData string = `Investing - Portfolio Value - Group by Security
+
+Created: 2021-12-11
+
+Price and Holdings as of: 2022-01-01
+
 x,Symbol,Shares,Type,Price,Price Day Change,Price Day Change (%),Cost Basis,Market Value,Average Cost Per Share,Gain/Loss 12-Month,Gain/Loss,Gain/Loss (%)
-x3M Corp (MMM),MMM,"100",Stock,"177.10","0.00","0.0%","$8,039.15","$17,710.00","80.39","$308.00","$9,670.85","120.3%"
-xAltria Group,MO,"1,300",Stock,"45.09","0.00","0.0%","$33,748.62","$58,617.00","25.96","$2,717.00","$24,868.38","73.7%"
-xAPPLE INC COM,AAPL,"400",Stock,"179.45","0.00","0.0%","$15,606.95","$71,780.00","39.02","$22,816.00","$56,173.05","359.9%"
-xJUNK INC COM,,"100",Stock,"279.45","0.00","0.0%","$15,606.95","$71,780.00","39.02","$22,816.00","$56,173.05","359.9%"
-xDEAD INC COM,,"100",Stock,"279.45","0.00","0.0%","$15,606.95","$71,780.00","39.02","$22,816.00","$56,173.05","359.9%"
+3M Corp (MMM),MMM,"100",Stock,"177.10","0.00","0.0%","$8,039.15","$17,710.00","80.39","$308.00","$9,670.85","120.3%"
+Altria Group,MO,"1,300",Stock,"45.09","0.00","0.0%","$33,748.62","$58,617.00","25.96","$2,717.00","$24,868.38","73.7%"
+APPLE INC COM,AAPL,"400",Stock,"179.45","0.00","0.0%","$15,606.95","$71,780.00","39.02","$22,816.00","$56,173.05","359.9%"
+JUNK INC COM,,"100",Stock,"279.45","0.00","0.0%","$15,606.95","$71,780.00","39.02","$22,816.00","$56,173.05","359.9%"
+DEAD INC COM,,"100",Stock,"279.45","0.00","0.0%","$15,606.95","$71,780.00","39.02","$22,816.00","$56,173.05","359.9%"
 x
-xCash,,,,,,,,"$40,405.66",,,,
-xTotals,,,,,,,"$870,683.60","$1,607,023.67",,"$183,339.93","$695,934.30","79.9%"
+Cash,,,,,,,,"$40,405.66",,,,
+Totals,,,,,,,"$870,683.60","$1,607,023.67",,"$183,339.93","$695,934.30","79.9%"
 `
 
 // TestMain
@@ -111,7 +111,7 @@ func TestLoadPortfolioValue(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// Get an normal value
-	req, _ = http.NewRequest(http.MethodGet, "/pv/AAPL?database=something", nil)
+	req, _ = http.NewRequest(http.MethodGet, "/pv/AAPL?database=something&juldate=2022001", nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -126,10 +126,10 @@ func TestLoadPortfolioValue(t *testing.T) {
 
 	assert.Nil(t, err, "Error")
 
-	t.Log(pvResponse)
+	// t.Log(pvResponse)
 
 	// Try JUNK where the symbol came from the lookup table.
-	req, _ = http.NewRequest(http.MethodGet, "/pv/JUNK?database=something", nil)
+	req, _ = http.NewRequest(http.MethodGet, "/pv/JUNK?database=something&juldate=2022001", nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -140,10 +140,10 @@ func TestLoadPortfolioValue(t *testing.T) {
 
 	assert.Nil(t, err, "Error")
 
-	// t.Log(pvResponse)
+	t.Log(pvResponse)
 
 	// Try a Missing Record
-	req, _ = http.NewRequest(http.MethodGet, "/pv/MISSING?database=something", nil)
+	req, _ = http.NewRequest(http.MethodGet, "/pv/MISSING?database=something&juldate=2022001", nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusNotFound, w.Code)

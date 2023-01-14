@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/kpearce2430/keputils/utils"
 	"iex-indicators/cmd/internal/handlers/indicators"
 	"iex-indicators/cmd/internal/handlers/lookups"
 	"iex-indicators/cmd/internal/handlers/portfolio_value"
-	"iex-indicators/utils"
 	"log"
 	"net/http"
 	"os"
@@ -23,8 +23,7 @@ func main() {
 	router.POST("/lookups/:id", lookups.LoadLookups)
 	router.GET("/lookups/:id", lookups.GetLookups)
 	router.POST("/pv", portfolio_value.LoadPortfolioValueHandler)
-
-	// stock_ind_router.Run("localhost:8080")
+	router.GET("/pv/:symbol", portfolio_value.GetPortfolioValueHandler)
 
 	myPort := fmt.Sprintf(":%s", utils.GetEnv("PORT", "8080"))
 
@@ -50,7 +49,7 @@ func main() {
 	<-quit
 	log.Println("Shutdown Server ...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatal("Server Shutdown:", err)

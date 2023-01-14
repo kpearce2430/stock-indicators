@@ -3,8 +3,8 @@ package iex_client
 import (
 	"fmt"
 	"github.com/imroc/req/v3"
-	"iex-indicators/http-client"
-	"iex-indicators/utils"
+	"github.com/kpearce2430/keputils/http-client"
+	"github.com/kpearce2430/keputils/utils"
 	"log"
 	"strconv"
 )
