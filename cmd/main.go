@@ -3,11 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"github.com/kpearce2430/keputils/utils"
-	"iex-indicators/cmd/internal/handlers/indicators"
-	"iex-indicators/cmd/internal/handlers/lookups"
-	"iex-indicators/cmd/internal/handlers/portfolio_value"
+	"iex-indicators/cmd/internal/app"
 	"log"
 	"net/http"
 	"os"
@@ -17,24 +14,13 @@ import (
 )
 
 func main() {
-	router := gin.Default()
-	router.GET("/rsi", indicators.GetRsiRouter)
-	router.GET("/macd", indicators.GetMACDRouter)
-	router.POST("/lookups/:id", lookups.LoadLookups)
-	router.GET("/lookups/:id", lookups.GetLookups)
-	router.POST("/pv", portfolio_value.LoadPortfolioValueHandler)
-	router.GET("/pv/:symbol", portfolio_value.GetPortfolioValueHandler)
 
 	myPort := fmt.Sprintf(":%s", utils.GetEnv("PORT", "8080"))
-
-	srv := &http.Server{
-		Addr:    myPort,
-		Handler: router,
-	}
+	a := app.NewApp(myPort)
 
 	go func() {
 		// service connections
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := a.Srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}
 	}()
@@ -51,7 +37,7 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := a.Srv.Shutdown(ctx); err != nil {
 		log.Fatal("Server Shutdown:", err)
 	}
 	// catching ctx.Done(). timeout of 5 seconds.

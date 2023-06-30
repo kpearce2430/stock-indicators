@@ -6,7 +6,7 @@ require (
 	github.com/gin-gonic/gin v1.8.1
 	github.com/imroc/req/v3 v3.29.0
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/kpearce2430/keputils v0.0.0-20230114173639-5a1f38b088b8
+	github.com/kpearce2430/keputils v0.0.3
 	github.com/segmentio/encoding v0.3.6
 	github.com/stretchr/testify v1.8.1
 )

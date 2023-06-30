@@ -8,9 +8,6 @@ import (
 
 var client *iex_client.IEXHttpClient
 
-//
-//
-//
 func TestMain(m *testing.M) {
 
 	os.Setenv("TOKEN", "Tpk_76c5b627e1d3420dbd0f2621787941ba")
@@ -33,7 +30,7 @@ func TestIEXHttpClient_GetMacD(t *testing.T) {
 		t.Errorf("Invalid length of Indicators %d", len(response.Indicator))
 		return
 	}
-	t.Logf(">> %v\n", len(response.Indicator))
+	// t.Logf(">> %v\n", len(response.Indicator))
 	indicator := response.Indicator[0]
 
 	t.Logf(">> %v\n", len(indicator))

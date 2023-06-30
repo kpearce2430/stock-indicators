@@ -8,7 +8,7 @@ import (
 	"github.com/segmentio/encoding/json"
 	"github.com/stretchr/testify/assert"
 	"iex-indicators/cmd/internal/handlers/indicators"
-	"iex-indicators/cmd/internal/stock_ind_router"
+	"iex-indicators/model"
 	"iex-indicators/responses"
 	"io/ioutil"
 	"log"
@@ -18,9 +18,6 @@ import (
 	"testing"
 )
 
-//
-//
-//
 var router *gin.Engine
 
 func TestMain(m *testing.M) {
@@ -118,7 +115,7 @@ func TestBasicRouterUpdate(t *testing.T) {
 
 func checkStatus(t *testing.T, body []byte, expectedStatus string) bool {
 
-	response := stock_ind_router.StatusObject{}
+	response := model.StatusObject{}
 
 	err := json.Unmarshal(body, &response)
 

@@ -19,7 +19,7 @@ vendor/
 t
 t.sh
 .idea
-*.csv
-
+# *.csv
+tmp/
 go_build_iex_indicators_cmd
 

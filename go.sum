@@ -160,6 +160,10 @@ github.com/klauspost/compress v1.11.13 h1:eSvu8Tmq6j2psUJqJrLcWH6K3w5Dwc+qipbaA6
 github.com/klauspost/compress v1.11.13/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/kpearce2430/keputils v0.0.0-20230114173639-5a1f38b088b8 h1:h036AJLQRmg9SxohWYd9LkGNRhOsWu2krJz+w6VA0Rg=
 github.com/kpearce2430/keputils v0.0.0-20230114173639-5a1f38b088b8/go.mod h1:YmSzlNnPfb2pdFLuozoj9/NRuYOPmofuDbxBr6OREIs=
+github.com/kpearce2430/keputils v0.0.2 h1:h+ewpgsmyKb/2vkHP/d3ET2fGuTURJlvNeB7SCSQ8TQ=
+github.com/kpearce2430/keputils v0.0.2/go.mod h1:YmSzlNnPfb2pdFLuozoj9/NRuYOPmofuDbxBr6OREIs=
+github.com/kpearce2430/keputils v0.0.3 h1:5DExY7fsBZ6mppaGhBoiCZs3nLNcngmD/6UsE87PLC0=
+github.com/kpearce2430/keputils v0.0.3/go.mod h1:YmSzlNnPfb2pdFLuozoj9/NRuYOPmofuDbxBr6OREIs=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pretty v0.2.1/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
 github.com/kr/pretty v0.3.0 h1:WgNl7dwNpEZ6jJ9k1snq4pZsg7DOEN8hP9Xw0Tsjwk0=

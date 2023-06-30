@@ -1,6 +1,7 @@
 package portfolio_value
 
 import (
+	"iex-indicators/model"
 	"log"
 	"strconv"
 	"strings"
@@ -23,31 +24,20 @@ var PVSymbolMaps = map[string]string{
 	"Gain/Loss (%)":          "gain_loss_pct",
 }
 
-type PortfolioValueRecord struct {
-	Name                string  `json:"name"`
-	Symbol              string  `json:"symbol"`
-	Type                string  `json:"type"`
-	Quote               float64 `json:"quote"`
-	PriceDayChange      float64 `json:"price_day_change"`
-	PriceDayChangePct   float64 `json:"price_day_change_pct"`
-	Shares              float64 `json:"shares"`
-	CostBasis           float64 `json:"cost_basis"`
-	MarketValue         float64 `json:"market_value"`
-	AverageCostPerShare float64 `json:"avg_cost_per_share"`
-	GainLoss12Month     float64 `json:"gain_loss_last_12m"`
-	GainLoss            float64 `json:"gain_loss"`
-	GainLossPct         float64 `json:"gain_loss_pct"`
-}
-
-//func cleanUp(s string) string {
-//
-//	t := strings.Replace(s, ",", "", -1)
-//	t = strings.Replace(t, "$", "", -1)
-//	t = strings.Replace(t, "#", "", -1)
-//	t = strings.Replace(t, "%", "", -1)
-//
-//	return t
-//
+//type PortfolioValueRecord struct {
+//	Name                string  `json:"name"`
+//	Symbol              string  `json:"symbol"`
+//	Type                string  `json:"type"`
+//	Quote               float64 `json:"quote"`
+//	PriceDayChange      float64 `json:"price_day_change"`
+//	PriceDayChangePct   float64 `json:"price_day_change_pct"`
+//	Shares              float64 `json:"shares"`
+//	CostBasis           float64 `json:"cost_basis"`
+//	MarketValue         float64 `json:"market_value"`
+//	AverageCostPerShare float64 `json:"avg_cost_per_share"`
+//	GainLoss12Month     float64 `json:"gain_loss_last_12m"`
+//	GainLoss            float64 `json:"gain_loss"`
+//	GainLossPct         float64 `json:"gain_loss_pct"`
 //}
 
 // floatParse common float parser
@@ -80,11 +70,11 @@ func floatParse(inputString string) (float64, error) {
 }
 
 // NewPortfolioValue create a new PortfolioValueRecord from the headers and row values provided.
-func NewPortfolioValue(headers []string, values []string) (*PortfolioValueRecord, error) {
+func NewPortfolioValue(headers []string, values []string) (*model.PortfolioValueRecord, error) {
 
 	// log.Println("In NewPortfolioValue", values)
 
-	pv := PortfolioValueRecord{}
+	pv := model.PortfolioValueRecord{}
 	// var err error
 
 	for index, value := range headers {
