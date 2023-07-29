@@ -5,13 +5,14 @@ import (
 	"github.com/kpearce2430/keputils/utils"
 	"github.com/sirupsen/logrus"
 	"iex-indicators/cmd/internal/handlers/indicators"
-	"iex-indicators/lookups"
+	"iex-indicators/model"
 	"net/http"
 )
 
 type App struct {
 	Srv       *http.Server
-	LookupSet *lookups.LookUpSet
+	LookupSet *model.LookUpSet
+	Tickers   map[string]*model.Ticker
 }
 
 func (a *App) routes() {
@@ -22,6 +23,7 @@ func (a *App) routes() {
 	router.GET("/lookups/:id", a.GetLookups)
 	router.POST("/pv", a.LoadPortfolioValueHandler)
 	router.GET("/pv/:symbol", a.GetPortfolioValueHandler)
+	router.POST("/transaction", a.LoadTransactionsHandler)
 	a.Srv.Handler = router
 }
 
@@ -31,7 +33,14 @@ func NewApp(port string) *App {
 			Addr: port,
 		},
 		LookupSet: nil,
+		Tickers:   make(map[string]*model.Ticker),
 	}
+
+	lSet, err := a.getLookupsFromDatabase("lookups", "2")
+	if err != nil {
+		logrus.Error("Error loading lookups:", err.Error())
+	}
+	a.LookupSet = lSet
 	a.routes()
 	a.setLogging()
 	return &a

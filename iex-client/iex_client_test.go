@@ -31,10 +31,10 @@ func TestIEXHttpClient_GetMacD(t *testing.T) {
 		return
 	}
 	// t.Logf(">> %v\n", len(response.Indicator))
-	indicator := response.Indicator[0]
+	// indicator := response.Indicator[0]
 
-	t.Logf(">> %v\n", len(indicator))
-	t.Logf(">> %v\n", len(response.Chart))
+	// t.Logf(">> %v\n", len(indicator))
+	// t.Logf(">> %v\n", len(response.Chart))
 
 }
 
@@ -51,10 +51,10 @@ func TestIEXHttpClient_GetRSI(t *testing.T) {
 		t.Errorf("Invalid length of Indicators %d", len(response.Indicator))
 		return
 	}
-	t.Logf(">> %v\n", len(response.Indicator))
-	indicator := response.Indicator[0]
-
-	t.Logf(">> %v\n", len(indicator))
-	t.Logf(">> %v\n", len(response.Chart))
+	//t.Logf(">> %v\n", len(response.Indicator))
+	//indicator := response.Indicator[0]
+	//
+	//t.Logf(">> %v\n", len(indicator))
+	//t.Logf(">> %v\n", len(response.Chart))
 
 }

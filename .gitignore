@@ -22,4 +22,7 @@ t.sh
 # *.csv
 tmp/
 go_build_iex_indicators_cmd
+*.xlsx
+*.txt
+
 

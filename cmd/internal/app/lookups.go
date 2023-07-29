@@ -5,7 +5,6 @@ import (
 	"github.com/gin-gonic/gin"
 	couch_database "github.com/kpearce2430/keputils/couch-database"
 	"github.com/sirupsen/logrus"
-	"iex-indicators/lookups"
 	"iex-indicators/model"
 	"io"
 	"net/http"
@@ -34,8 +33,8 @@ func (a *App) LoadLookups(c *gin.Context) {
 		databaseName = "lookups"
 	}
 
-	lookupSet := lookups.LoadLookupSet(id, string(rawData))
-	lookupDatabase, err := couch_database.GetDataStoreByDatabaseName[lookups.LookUpSet](databaseName)
+	lookupSet := model.LoadLookupSet(id, string(rawData))
+	lookupDatabase, err := couch_database.GetDataStoreByDatabaseName[model.LookUpSet](databaseName)
 
 	if err != nil {
 		logrus.Error(err.Error())
@@ -124,17 +123,17 @@ func (a *App) GetLookupName(c *gin.Context) {
 		return
 	}
 
-	l := lookupResult.GetLookUpByName(name)
-	if l != nil {
-		c.IndentedJSON(http.StatusOK, model.StatusObject{Status: "ok", Symbol: l.Symbol})
+	symbol, ok := lookupResult.GetLookUpByName(name)
+	if ok {
+		c.IndentedJSON(http.StatusOK, model.StatusObject{Status: "ok", Symbol: symbol})
 		return
 	}
 	c.IndentedJSON(http.StatusNotFound, model.StatusObject{Status: "Not Found", Symbol: ""})
 }
 
-func (a *App) getLookupsFromDatabase(databaseName string, id string) (*lookups.LookUpSet, error) {
+func (a *App) getLookupsFromDatabase(databaseName string, id string) (*model.LookUpSet, error) {
 	//
-	lookupDatabase, err := couch_database.GetDataStoreByDatabaseName[lookups.LookUpSet](databaseName)
+	lookupDatabase, err := couch_database.GetDataStoreByDatabaseName[model.LookUpSet](databaseName)
 	if err != nil {
 		logrus.Error(err.Error())
 		return nil, err

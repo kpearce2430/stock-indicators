@@ -3,9 +3,11 @@ package app_test
 import (
 	"bytes"
 	_ "embed"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"iex-indicators/cmd/internal/app"
+	"iex-indicators/model"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -15,10 +17,18 @@ import (
 //go:embed testdata/transactions.csv
 var testTransactions []byte
 
+//go:embed testdata/trans_sbx.csv
+var testSBUXTransactions []byte
+
+//go:embed testdata/trans_hd.csv
+var testTHDTransaction []byte
+
 func TestGetResourceById(t *testing.T) {
 	a := app.App{
 		Srv:       nil,
-		LookupSet: nil,
+		Tickers:   make(map[string]*model.Ticker),
+		LookupSet: model.LoadLookupSet("1", string(csvLookupData)),
+		// Symbols:   make(map[string]bool),
 	}
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -26,29 +36,47 @@ func TestGetResourceById(t *testing.T) {
 	a.LoadTransactionsHandler(c)
 	assert.Equal(t, 200, w.Code) // or what value you need it to be
 
-	//var got gin.H
-	//err := json.Unmarshal(w.Body.Bytes(), &got)
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
-	// assert.Equal(t, want, got) // want is a gin.H that contains the wanted map.
 }
 
-func TestWithData(t *testing.T) {
+func TestBuySellSBUX(t *testing.T) {
 	a := app.App{
 		Srv:       nil,
-		LookupSet: nil,
+		Tickers:   make(map[string]*model.Ticker),
+		LookupSet: model.LoadLookupSet("1", string(csvLookupData)),
 	}
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Request, _ = http.NewRequest("POST", "/", bytes.NewBuffer(testTransactions))
-	// c.Request.Header.Set("Content-Type", mw.FormDataContentType())
-	// c.engine.MaxMultipartMemory = 8 << 20
+	c.Request, _ = http.NewRequest("POST", "/", bytes.NewBuffer(testSBUXTransactions))
 	a.LoadTransactionsHandler(c)
 	assert.Equal(t, 200, w.Code) // or what value you need it to be
 
 	responseData, _ := io.ReadAll(w.Body)
-
 	t.Log(string(responseData))
+}
 
+func TestBuySellTHD(t *testing.T) {
+	a := app.App{
+		Srv:       nil,
+		Tickers:   make(map[string]*model.Ticker),
+		LookupSet: model.LoadLookupSet("1", string(csvLookupData)),
+	}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest("POST", "/", bytes.NewBuffer(testTHDTransaction))
+	a.LoadTransactionsHandler(c)
+	assert.Equal(t, 200, w.Code) // or what value you need it to be
+
+	//responseData, _ := io.ReadAll(w.Body)
+	//t.Log(string(responseData))
+	for _, ticker := range a.Tickers {
+		fmt.Println(ticker)
+		//for _, acct := range ticker.Accounts {
+		//	fmt.Println(acct)
+		//	for _, entity := range acct.Entities {
+		//		fmt.Println(entity)
+		//
+		//	}
+		//}
+	}
+	//t.Log(a.Tickers["HD"].NumberOfShares())
 }

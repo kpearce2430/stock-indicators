@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"iex-indicators/cmd/internal/app"
-	"iex-indicators/lookups"
 	"iex-indicators/model"
 	"io"
 	"net/http"
@@ -25,7 +24,7 @@ func TestLoadPortfolioValue(t *testing.T) {
 		LookupSet: nil,
 	}
 
-	a.LookupSet = lookups.LoadLookupSet("1", string(csvLookupData))
+	a.LookupSet = model.LoadLookupSet("1", string(csvLookupData))
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -107,7 +106,7 @@ func TestLoadPortfolioValue(t *testing.T) {
 				err = json.Unmarshal(responseData, &status)
 				assert.Equal(t, nil, err)
 				assert.Equal(t, tc.Params[0].Value, status.PV.Symbol)
-				t.Log(status.PV.Name)
+				// t.Log(status.PV.Name)
 				// t.Log("record:", status)
 			}
 		}(t, a, tc)

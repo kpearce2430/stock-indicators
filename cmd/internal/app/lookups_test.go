@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"iex-indicators/cmd/internal/app"
-	"iex-indicators/lookups"
 	"iex-indicators/model"
 	"io"
 	"net/http"
@@ -80,8 +79,8 @@ func TestLoadLookups(t *testing.T) {
 			if w.Code == http.StatusOK {
 				responseData, err := io.ReadAll(w.Body)
 				assert.Equal(t, nil, err)
-				t.Log(string(responseData))
-				var status lookups.LookUpSet
+				// t.Log(string(responseData))
+				var status model.LookUpSet
 				err = json.Unmarshal(responseData, &status)
 				assert.Equal(t, nil, err)
 			}

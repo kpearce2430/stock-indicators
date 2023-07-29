@@ -4,7 +4,7 @@ Created: 2021-12-11
 
 Price and Holdings as of: 2022-01-01
 
-x,Symbol,Shares,Type,Price,Price Day Change,Price Day Change (%),Cost Basis,Market Value,Average Cost Per Share,Gain/Loss 12-Month,Gain/Loss,Gain/Loss (%)
+Name,Symbol,Shares,Type,Price,Price Day Change,Price Day Change (%),Cost Basis,Market Value,Average Cost Per Share,Gain/Loss 12-Month,Gain/Loss,Gain/Loss (%)
 3M Corp (MMM),MMM,"100",Stock,"177.10","0.00","0.0%","$8,039.15","$17,710.00","80.39","$308.00","$9,670.85","120.3%"
 Altria Group,MO,"1,300",Stock,"45.09","0.00","0.0%","$33,748.62","$58,617.00","25.96","$2,717.00","$24,868.38","73.7%"
 APPLE INC COM,AAPL,"400",Stock,"179.45","0.00","0.0%","$15,606.95","$71,780.00","39.02","$22,816.00","$56,173.05","359.9%"

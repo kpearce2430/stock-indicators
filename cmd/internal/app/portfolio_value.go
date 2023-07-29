@@ -9,7 +9,6 @@ import (
 	"github.com/kpearce2430/keputils/utils"
 	"github.com/sirupsen/logrus"
 	"iex-indicators/model"
-	pv "iex-indicators/portfolio_value"
 	"io"
 	"log"
 	"net/http"
@@ -37,10 +36,10 @@ import (
 // LoadPortfolioValueHandler handler for loading Portfolio Value exported from Quicken
 func (a *App) LoadPortfolioValueHandler(c *gin.Context) {
 	logrus.Debug("In LoadPortfolioValueHandler ")
-
 	if a.LookupSet == nil {
 		logrus.Error("Missing Lookup Set")
 		c.IndentedJSON(http.StatusInternalServerError, "Backend Issue")
+		return
 	}
 
 	defer func() {
@@ -119,6 +118,7 @@ func (a *App) LoadPortfolioValueHandler(c *gin.Context) {
 				}
 
 				julDate = date.Format("2006002")
+				logrus.Info("PV Julian Date:", julDate)
 				continue
 			}
 
@@ -143,16 +143,16 @@ func (a *App) LoadPortfolioValueHandler(c *gin.Context) {
 			}
 
 			if len(record) == numRows {
-				pvRec, err := pv.NewPortfolioValue(headers, record)
+				pvRec, err := model.NewPortfolioValue(headers, record)
 				if err != nil {
 					logrus.Error("Error>>", err.Error())
 					c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
 				}
 
 				if pvRec.Symbol == "" {
-					lookupItem := a.LookupSet.GetLookUpByName(pvRec.Name)
-					if lookupItem != nil {
-						switch lookupItem.Symbol {
+					Symbol, ok := a.LookupSet.GetLookUpByName(pvRec.Name)
+					if ok {
+						switch Symbol {
 						case "DEAD":
 							logrus.Debug("Found Dead")
 							continue
@@ -160,7 +160,7 @@ func (a *App) LoadPortfolioValueHandler(c *gin.Context) {
 							logrus.Debug("Error Missing Symbol for \"", pvRec, "\"")
 							continue
 						default:
-							pvRec.Symbol = lookupItem.Symbol
+							pvRec.Symbol = Symbol
 						}
 					}
 				}
