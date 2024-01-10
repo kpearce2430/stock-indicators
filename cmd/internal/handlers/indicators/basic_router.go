@@ -5,9 +5,9 @@ import (
 	"github.com/gin-gonic/gin"
 	couchdatabase "github.com/kpearce2430/keputils/couch-database"
 	"github.com/kpearce2430/keputils/utils"
-	iex_client "iex-indicators/iex-client"
-	"iex-indicators/model"
-	"iex-indicators/responses"
+	iex_client "github.com/kpearce2430/stock-tools/iex-client"
+	"github.com/kpearce2430/stock-tools/model"
+	"github.com/sirupsen/logrus"
 	"log"
 	"net/http"
 	"strconv"
@@ -44,7 +44,6 @@ func BasicRouter(c *gin.Context, stockIndicator string) {
 	//   update - update current document in couchdb with iex
 	//   delete - tbd
 	//
-
 	if symbol == "" {
 		status := model.StatusObject{Status: "missing symbol"}
 		c.IndentedJSON(http.StatusBadRequest, status)
@@ -59,10 +58,9 @@ func BasicRouter(c *gin.Context, stockIndicator string) {
 
 	log.Printf("key: %s", key)
 
-	indicatorDatabase := couchdatabase.DataStore[responses.CouchIndicatorResponse]("")
+	indicatorDatabase := couchdatabase.DataStore[iex_client.CouchIndicatorResponse]("")
 
 	if indicatorDatabase.CouchDBUp() != true {
-
 		// log.Fatal(fmt.Sprintf("%s %s %s %s", couch_database.))
 		log.Printf("%s", indicatorDatabase.GetConfig())
 		status := model.StatusObject{Status: "CouchDB Not Up"}
@@ -106,7 +104,12 @@ func BasicRouter(c *gin.Context, stockIndicator string) {
 	} else if actionIndicator == "update" {
 		// There is a document found but the caller wants an updated with the based on
 		// the latest request.
-		log.Printf("Old Rev: %s", indData.Rev)
+		if indData == nil {
+			status := model.StatusObject{Status: "unexpected nil value from indicator"}
+			logrus.Error(status)
+			c.IndentedJSON(http.StatusInternalServerError, status)
+		}
+		logrus.Error("Old Rev:", indData)
 		revision := indData.Rev
 
 		indicatorResponse, err := callIexIndicator(stockIndicator, key, symbol, iexIndicator, iexPeriod)
@@ -147,7 +150,7 @@ func BasicRouter(c *gin.Context, stockIndicator string) {
 
 }
 
-func callIexIndicator(indicatorType string, key string, symbol string, indicator bool, period string) (*responses.CouchIndicatorResponse, error) {
+func callIexIndicator(indicatorType string, key string, symbol string, indicator bool, period string) (*iex_client.CouchIndicatorResponse, error) {
 
 	domain := utils.GetEnv("IEX_URL", "sandbox.iexapis.com")
 	iexClient := iex_client.New(domain, 60, true).
@@ -170,7 +173,7 @@ func callIexIndicator(indicatorType string, key string, symbol string, indicator
 
 	dt := time.Now()
 
-	data := responses.CouchIndicatorResponse{
+	data := iex_client.CouchIndicatorResponse{
 		Id:             key,
 		StockSymbol:    symbol,
 		StockIndicator: indicatorType,
