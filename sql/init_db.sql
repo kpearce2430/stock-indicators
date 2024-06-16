@@ -1,0 +1,75 @@
+-- Creation of transaction table
+--  PRIMARY KEY(date, type, symbol, account )
+CREATE TABLE IF NOT EXISTS transactions (
+    id  NUMERIC,
+    date TIMESTAMP,
+    type varchar(50),
+    security varchar(255),
+    security_payee varchar(255),
+    symbol varchar(10),
+    description varchar(255),
+    shares NUMERIC,
+    investment_amount NUMERIC,
+    amount NUMERIC,
+    account varchar(255),
+    PRIMARY KEY(id)
+);
+
+CREATE TABLE IF NOT EXISTS all_transactions (
+    id  NUMERIC,
+    date TIMESTAMP,
+    type varchar(50),
+    security varchar(255),
+    security_payee varchar(255),
+    symbol varchar(10),
+    description varchar(255),
+    shares NUMERIC,
+    investment_amount NUMERIC,
+    amount NUMERIC,
+    account varchar(255),
+    PRIMARY KEY(id)
+);
+
+CREATE TABLE IF NOT EXISTS fund_history (
+    symbol varchar(10),
+    source varchar(50),
+    date TIMESTAMP,
+    open NUMERIC,
+    high NUMERIC,
+    low NUMERIC,
+    close NUMERIC,
+    adj_close NUMERIC,
+    volume NUMERIC,
+    PRIMARY KEY(symbol,date)
+);
+
+CREATE TABLE IF NOT EXISTS test_history (
+    symbol varchar(10),
+    source varchar(50),
+    date TIMESTAMP,
+    open NUMERIC,
+    high NUMERIC,
+    low NUMERIC,
+    close NUMERIC,
+    adj_close NUMERIC,
+    volume NUMERIC,
+    PRIMARY KEY(symbol,date)
+    );
+
+CREATE TABLE IF NOT EXISTS portfolio_value (
+    date TIMESTAMP,
+    name    VARCHAR(255),
+    symbol VARCHAR(10),
+    type VARCHAR(25),
+    quote NUMERIC,
+    pricedaychange NUMERIC,
+    pricedaychangepct NUMERIC,
+    shares NUMERIC,
+    costbasis NUMERIC,
+    marketvalue NUMERIC,
+    averagecostpershare NUMERIC,
+    gainloss12month NUMERIC,
+    gainloss NUMERIC,
+    gaillosspct NUMERIC,
+    PRIMARY KEY(symbol,date)
+)
