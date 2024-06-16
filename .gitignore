@@ -17,12 +17,22 @@ vendor/
 # Keith's files
 .DS_Store
 t
+tt
 t.sh
+x
+xx
+x.sh
 .idea
 # *.csv
 tmp/
-go_build_iex_indicators_cmd
+testdata/*
+
 *.xlsx
 *.txt
 
-
+#specific files
+/model/testdata/transactions-2023-12-09.csv
+/model/testdata/transactions-2023-12-16.csv
+/tmp/go_build_github_com_kpearce2430_stock_tools_cmd
+/tmp/go_build_iex_indicators_cmd
+/go_build_github_com_kpearce2430_stock_tools_cmd
