@@ -9,6 +9,7 @@ import (
 	"github.com/kpearce2430/stock-tools/iex-client"
 	"github.com/kpearce2430/stock-tools/model"
 	"github.com/segmentio/encoding/json"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"log"
@@ -24,8 +25,17 @@ func TestMain(m *testing.M) {
 
 	ctx := context.Background()
 
-	couchDBServer, _ := couch_database.CreateCouchDBServer(ctx)
-	defer couchDBServer.Terminate(ctx)
+	couchDBServer, err := couch_database.CreateCouchDBServer(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer func() {
+		err := couchDBServer.Terminate(ctx)
+		if err != nil {
+			logrus.Error(err.Error())
+		}
+	}()
 
 	ip, err := couchDBServer.Host(ctx)
 	if err != nil {

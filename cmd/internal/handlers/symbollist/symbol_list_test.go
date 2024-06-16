@@ -73,7 +73,7 @@ func TestNewSymbolList(t *testing.T) {
 	symList.SymbolListGet(c)
 	assert.Equal(t, 200, w.Code) // or what value you need it to be
 	// responseData, _ := io.ReadAll(w.Body)
-	// t.Log(string(responseData))
+	// hist_usaix.csv.Log(string(responseData))
 }
 
 func TestSymbolList_AccountListGet(t *testing.T) {
@@ -85,7 +85,7 @@ func TestSymbolList_AccountListGet(t *testing.T) {
 	symList.AccountListGet(c)
 	assert.Equal(t, 200, w.Code) // or what value you need it to be
 	// responseData, _ := io.ReadAll(w.Body)
-	// t.Log(string(responseData))
+	// hist_usaix.csv.Log(string(responseData))
 }
 
 func TestSymbolList_TickerInfoGet(t *testing.T) {
@@ -100,5 +100,5 @@ func TestSymbolList_TickerInfoGet(t *testing.T) {
 	symList.TickerInfoGet(c)
 	assert.Equal(t, 200, w.Code) // or what value you need it to be
 	// responseData, _ := io.ReadAll(w.Body)
-	// t.Log(string(responseData))
+	// hist_usaix.csv.Log(string(responseData))
 }

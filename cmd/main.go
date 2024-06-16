@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/kpearce2430/keputils/utils"
-	"iex-indicators/cmd/internal/app"
+	"github.com/kpearce2430/stock-tools/cmd/internal/app"
 	"log"
 	"net/http"
 	"os"
@@ -30,7 +30,7 @@ func main() {
 	quit := make(chan os.Signal)
 	// kill (no param) default send syscanll.SIGTERM
 	// kill -2 is syscall.SIGINT
-	// kill -9 is syscall. SIGKILL but can"t be catch, so don't need add it
+	// kill -9 is syscall. SIGKILL but can"hist_usaix.csv be catch, so don'hist_usaix.csv need add it
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutdown Server ...")

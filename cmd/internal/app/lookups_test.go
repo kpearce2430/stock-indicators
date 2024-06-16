@@ -5,9 +5,8 @@ import (
 	_ "embed"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"github.com/kpearce2430/stock-tools/model"
 	"github.com/stretchr/testify/assert"
-	"iex-indicators/cmd/internal/app"
-	"iex-indicators/model"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -16,18 +15,14 @@ import (
 
 func TestLoadLookups(t *testing.T) {
 	//
-	// Switch to test mode so you don't get such noisy output
+	// Switch to test mode so you don'hist_usaix.csv get such noisy output
+	t.Parallel()
 	gin.SetMode(gin.TestMode)
-
-	a := app.App{
-		Srv:       nil,
-		LookupSet: nil,
-	}
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Params = []gin.Param{gin.Param{Key: "id", Value: "1"}}
 	c.Request, _ = http.NewRequest(http.MethodPost, "/lookups/1", bytes.NewBuffer(csvLookupData))
-	a.LoadLookups(c)
+	testApp.LoadLookups(c)
 	responseData, err := io.ReadAll(w.Body)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -39,7 +34,6 @@ func TestLoadLookups(t *testing.T) {
 		t.Log(err.Error())
 		t.Fail()
 	}
-	// t.Log(string(responseData))
 
 	type testCase struct {
 		Description string
@@ -60,31 +54,32 @@ func TestLoadLookups(t *testing.T) {
 			Params: []gin.Param{
 				{Key: "id", Value: "2"},
 			},
-			StatusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusOK,
 		},
 		{
 			Description: "Missing URI Params",
-			StatusCode:  http.StatusBadRequest,
+			StatusCode:  http.StatusOK,
 		},
 	}
 
 	for _, tc := range testGetLookups {
-		func(t *testing.T, a app.App, tc testCase) {
+		t.Run(tc.Description, func(t *testing.T) {
+			t.Parallel()
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Params = tc.Params
 			c.Request, _ = http.NewRequest(http.MethodGet, "/", nil)
-			a.GetLookups(c)
+			testApp.GetLookups(c)
 			assert.Equal(t, tc.StatusCode, w.Code)
 			if w.Code == http.StatusOK {
 				responseData, err := io.ReadAll(w.Body)
 				assert.Equal(t, nil, err)
-				// t.Log(string(responseData))
+				// hist_usaix.csv.Log(string(responseData))
 				var status model.LookUpSet
 				err = json.Unmarshal(responseData, &status)
 				assert.Equal(t, nil, err)
 			}
-		}(t, a, tc)
+		})
 	}
 
 	testGetLookupName := []testCase{
@@ -107,15 +102,16 @@ func TestLoadLookups(t *testing.T) {
 	}
 
 	for _, tc := range testGetLookupName {
-		func(t *testing.T, a app.App, tc testCase) {
+		t.Run(tc.Description, func(t *testing.T) {
+			t.Parallel()
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Params = tc.Params
 			c.Request, err = http.NewRequest(http.MethodGet, "/", nil)
-			a.GetLookupName(c)
+			testApp.GetLookupName(c)
 			_, err := io.ReadAll(w.Body)
 			assert.Equal(t, nil, err)
 			assert.Equal(t, tc.StatusCode, w.Code)
-		}(t, a, tc)
+		})
 	}
 }

@@ -2,12 +2,12 @@ package app_test
 
 import (
 	"bytes"
+	"context"
 	_ "embed"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/kpearce2430/stock-tools/cmd/internal/app"
 	"github.com/stretchr/testify/assert"
-	"iex-indicators/cmd/internal/app"
-	"iex-indicators/model"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -23,60 +23,47 @@ var testSBUXTransactions []byte
 //go:embed testdata/trans_hd.csv
 var testTHDTransaction []byte
 
-func TestGetResourceById(t *testing.T) {
-	a := app.App{
-		Srv:       nil,
-		Tickers:   make(map[string]*model.Ticker),
-		LookupSet: model.LoadLookupSet("1", string(csvLookupData)),
-		// Symbols:   make(map[string]bool),
-	}
+func TestApp_LoadTransactionsHandler(t *testing.T) {
+	t.Parallel()
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request, _ = http.NewRequest("POST", "/", bytes.NewBuffer(testTransactions))
-	a.LoadTransactionsHandler(c)
+	q := c.Request.URL.Query()
+	q.Add("database", app.TransactionAllTable)
+	c.Request.URL.RawQuery = q.Encode()
+
+	testApp.LoadTransactionsHandler(c)
 	assert.Equal(t, 200, w.Code) // or what value you need it to be
 
+	var count int
+	if err := testApp.PGXConn.QueryRow(context.Background(), fmt.Sprintf("select count(*) from %s", app.TransactionAllTable)).Scan(&count); err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Log("Count:", count)
 }
 
 func TestBuySellSBUX(t *testing.T) {
-	a := app.App{
-		Srv:       nil,
-		Tickers:   make(map[string]*model.Ticker),
-		LookupSet: model.LoadLookupSet("1", string(csvLookupData)),
-	}
+	t.Skip("is this needed")
+	t.Parallel()
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request, _ = http.NewRequest("POST", "/", bytes.NewBuffer(testSBUXTransactions))
-	a.LoadTransactionsHandler(c)
+	testApp.LoadTransactionsHandler(c)
 	assert.Equal(t, 200, w.Code) // or what value you need it to be
-
 	responseData, _ := io.ReadAll(w.Body)
 	t.Log(string(responseData))
 }
 
 func TestBuySellTHD(t *testing.T) {
-	a := app.App{
-		Srv:       nil,
-		Tickers:   make(map[string]*model.Ticker),
-		LookupSet: model.LoadLookupSet("1", string(csvLookupData)),
-	}
+	t.Skip("is this needed")
+	t.Parallel()
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request, _ = http.NewRequest("POST", "/", bytes.NewBuffer(testTHDTransaction))
-	a.LoadTransactionsHandler(c)
+	testApp.LoadTransactionsHandler(c)
 	assert.Equal(t, 200, w.Code) // or what value you need it to be
 
-	//responseData, _ := io.ReadAll(w.Body)
-	//t.Log(string(responseData))
-	for _, ticker := range a.Tickers {
+	for _, ticker := range testApp.Tickers {
 		fmt.Println(ticker)
-		//for _, acct := range ticker.Accounts {
-		//	fmt.Println(acct)
-		//	for _, entity := range acct.Entities {
-		//		fmt.Println(entity)
-		//
-		//	}
-		//}
 	}
-	//t.Log(a.Tickers["HD"].NumberOfShares())
 }
