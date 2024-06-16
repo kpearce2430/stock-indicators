@@ -2,7 +2,7 @@ package model_test
 
 import (
 	_ "embed"
-	"iex-indicators/model"
+	"github.com/kpearce2430/stock-tools/model"
 	"testing"
 )
 
@@ -10,10 +10,9 @@ import (
 var csvLookupData []byte
 
 func TestLoadLookupSet(t *testing.T) {
-
+	t.Parallel()
 	ls := model.LoadLookupSet("1", string(csvLookupData))
-
-	if len(ls.LookUps) != 9 {
+	if len(ls.LookUps) != 14 {
 		t.Log("LookUp Count ", len(ls.LookUps), " does not equal 9")
 		t.Fail()
 	}

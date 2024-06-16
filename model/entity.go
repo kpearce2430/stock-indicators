@@ -5,6 +5,7 @@ import (
 	"github.com/kpearce2430/keputils/utils"
 	"github.com/segmentio/encoding/json"
 	"github.com/sirupsen/logrus"
+	"math"
 	"strings"
 	"time"
 )
@@ -27,7 +28,34 @@ type Entity struct {
 	SoldLots         []*Lot          `json:"sold_lots,omitempty"`
 }
 
-func NewEntityFromTransaction(tr *Transaction) *Entity {
+func (e *Entity) Copy() *Entity {
+	n := Entity{
+		Date:             e.Date,
+		Type:             e.Type,
+		Security:         e.Security,
+		Symbol:           e.Symbol,
+		SecurityPayee:    e.SecurityPayee,
+		Description:      e.Description,
+		Shares:           e.Shares,
+		InvestmentAmount: e.InvestmentAmount,
+		Amount:           e.Amount,
+		PricePerShare:    e.PricePerShare,
+		RemainingShares:  e.RemainingShares,
+	}
+
+	for _, l := range e.SoldLots {
+		nLot := Lot{
+			NumberShares:  l.NumberShares,
+			PricePerShare: l.PricePerShare,
+			SoldDate:      l.SoldDate,
+		}
+		n.SoldLots = append(n.SoldLots, &nLot)
+	}
+
+	return &n
+}
+
+func NewEntityFromTransaction(tr *Transaction) (*Entity, error) {
 	e := Entity{
 		Date:             tr.Date,
 		Type:             tr.Type,
@@ -46,13 +74,21 @@ func NewEntityFromTransaction(tr *Transaction) *Entity {
 		parts := strings.Split(e.Description, " ")
 		switch len(parts) {
 		case 4:
-			e.PricePerShare, _ = utils.FloatParse(parts[3])
+			pps, err := utils.FloatParse(parts[3])
+			// e.PricePerShare, err := utils.FloatParse(parts[3])
+			if err != nil {
+				e.PricePerShare = 0.00
+				return &e, err
+			}
+			e.PricePerShare = pps
+
 		default:
 			logrus.Error("Invalid Description for Price Per Share:", e)
 			e.PricePerShare = 0.00
+			// return &e, errPricePerShare
 		}
 	}
-	return &e
+	return &e, nil
 }
 
 func (e *Entity) SellShares(numSharesToSell float64, pps float64) float64 {
@@ -87,14 +123,11 @@ func (e *Entity) SellShares(numSharesToSell float64, pps float64) float64 {
 }
 
 func (e *Entity) SplitShares(newShares, oldShares float64) {
-	/*
-	   newRemainingShares = (float(self.remainingShares()) / oldShares) * newShares
-	   self.entry["entryRemainingShares"] = str(newRemainingShares)
-	*/
 	if e.RemainingShares <= 0 {
 		return
 	}
 	e.RemainingShares = (e.RemainingShares / oldShares) * newShares
+
 }
 
 func (e *Entity) String() string {
@@ -103,4 +136,94 @@ func (e *Entity) String() string {
 		return fmt.Sprintf("%v", err.Error())
 	}
 	return fmt.Sprintf(string(bytes))
+}
+
+func (e *Entity) amountType(incomeType TransactionType) float64 {
+	if e.Type == incomeType {
+		if e.Amount > 0 {
+			return e.Amount
+		}
+		return e.InvestmentAmount
+	}
+	return 0.00
+}
+
+func (e *Entity) DividendIncome() float64 {
+	return e.amountType("Dividend Income") + e.amountType("Reinvest Dividend")
+}
+
+func (e *Entity) LongTermCapitalGain() float64 {
+	amt := e.amountType("Long-term Capital Gain")
+	amt += e.amountType("Reinvest Long-term Capital Gain")
+	return amt
+}
+
+func (e *Entity) ShortTermCapitalGain() float64 {
+	amt := e.amountType("Short-term Capital Gain")
+	amt += e.amountType("Reinvest Short-term Capital Gain")
+	return amt
+}
+
+func (e *Entity) Dividends() float64 {
+	return e.DividendIncome() + e.InterestIncome() + e.LongTermCapitalGain() + e.ShortTermCapitalGain()
+}
+
+func (e *Entity) DividendsPaid() float64 {
+	/*
+	   "Dividend Income", *
+	   "Reinvest Dividend", *
+	   "Interest Income", x
+	   "Long-term Capital Gain", *
+	   "Short-term Capital Gain", *
+	   "Reinvest Long-term Capital Gain",*
+	   "Reinvest Short-term Capital Gain", *
+	*/
+	switch e.Type {
+	case "Dividend Income":
+		return e.Amount
+	case "Return of Capital":
+		return e.Amount
+	case "Reinvest Dividend":
+		return e.InvestmentAmount
+	case "Reinvest Long-term Capital Gain":
+		return e.InvestmentAmount
+	case "Short-term Capital Gain":
+		return e.Amount
+	case "Reinvest Short-term Capital Gain":
+		return e.Amount
+	}
+	return 0.00
+}
+
+func (e *Entity) InterestIncome() float64 {
+	switch e.Type {
+	case "Interest Income", "Int Inc", "int inc":
+		return e.Amount
+	}
+	return 0.00
+}
+
+func (e *Entity) NetCost() float64 {
+	/*
+	   amt = 0.00
+	   type = self.entry.get("entryType")
+	   if type in buyTransactions and self.numShares() > 0:
+	       amt = abs(self.amount())
+	       for lot in self.soldLots:
+	           amt = amt - lot.proceeds()
+
+	   # print("netCost Amount: {}".format(amt))
+	   return amt
+
+	*/
+	amt := 0.00
+	if utils.Contains(BuyTransactions, string(e.Type)) {
+		if e.RemainingShares > 0.00 {
+			amt = math.Abs(e.Amount)
+			for _, lot := range e.SoldLots {
+				amt -= lot.Proceeds()
+			}
+		}
+	}
+	return amt
 }

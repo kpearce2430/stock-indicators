@@ -16,7 +16,6 @@ type LookUpSet struct {
 }
 
 func NewLookupSet(id string) *LookUpSet {
-
 	dt := time.Now()
 	curTimeStr := dt.Format("2006-01-02 15:04:05")
 	lookupSet := LookUpSet{Id: id, Timestamp: curTimeStr}
@@ -38,15 +37,11 @@ func LoadLookupSet(id string, csvData string) *LookUpSet {
 		}
 		if err != nil {
 			log.Fatal(err)
-			break
 		}
 
 		if len(record) < 2 {
 			break
 		}
-
-		// lookup := LoopUpItem{Name: strings.TrimSpace(record[0]), Symbol: strings.TrimSpace(record[1])}
-		// lookupSet.LookUps = append(lookupSet.LookUps, lookup)
 		lookupSet.LookUps[record[0]] = record[1]
 	}
 	return lookupSet
