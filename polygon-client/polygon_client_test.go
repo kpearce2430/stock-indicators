@@ -10,7 +10,7 @@ import (
 )
 
 /*
-https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/day/2023-01-09/2023-01-09?apiKey=YVaauGHjGDYf8W_sQLMejJ3W15Y1aiV1
+https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/day/2023-01-09/2023-01-09?apiKey=<token>
 */
 
 type PolygonTest struct {
@@ -28,7 +28,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	p = polygon_client.NewPolygonClient("YVaauGHjGDYf8W_sQLMejJ3W15Y1aiV1")
+	p = polygon_client.NewPolygonClient("")
 	m.Run()
 }
 
@@ -113,6 +113,8 @@ func TestPolygonClient_GetDailyOpenCloseAgg(t *testing.T) {
 
 func TestPolygonClient_GetRSI(t *testing.T) {
 	// hist_usaix.csv.Parallel()
+
+	p = polygon_client.NewPolygonClient("")
 
 	tests := []PolygonTest{
 		{"AAPL", false},

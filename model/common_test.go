@@ -100,7 +100,5 @@ func TestMain(m *testing.M) {
 	_ = os.Setenv("COUCHDB_USER", "admin")
 	_ = os.Setenv("COUCHDB_PASSWORD", "password")
 	_ = os.Setenv("CACHE_COUCHDB_DATABASE", stockCache)
-	_ = os.Setenv("POLYGON_API", "YVaauGHjGDYf8W_sQLMejJ3W15Y1aiV1") // TODO: Read from environment
-
 	os.Exit(m.Run())
 }

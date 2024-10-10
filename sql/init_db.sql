@@ -72,4 +72,16 @@ CREATE TABLE IF NOT EXISTS portfolio_value (
     gainloss NUMERIC,
     gaillosspct NUMERIC,
     PRIMARY KEY(symbol,date)
-)
+);
+
+CREATE TABLE IF NOT EXISTS dividends (
+    ticker VARCHAR(25),
+    cash_amount NUMERIC,
+    declaration_date TIMESTAMP,
+    dividend_type VARCHAR(25),
+    ex_dividend_date TIMESTAMP,
+    frequency NUMERIC,
+    pay_date TIMESTAMP,
+    record_date TIMESTAMP,
+    PRIMARY KEY(ticker,declaration_date)
+);

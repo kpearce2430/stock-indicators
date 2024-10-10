@@ -82,7 +82,6 @@ func TestMain(m *testing.M) {
 	_ = os.Setenv("COUCHDB_PASSWORD", "password")
 	_ = os.Setenv("PV_COUCHDB_DATABASE", portfolioDatabaseName)
 	_ = os.Setenv("CACHE_COUCH_DATABASE", stockCacheDBName)
-	_ = os.Setenv("POLYGON_API", "YVaauGHjGDYf8W_sQLMejJ3W15Y1aiV1") // TODO: Read from environment
 
 	// Set up the postgres environment
 	pgIP, err := postgresDBServer.Host(ctx)
