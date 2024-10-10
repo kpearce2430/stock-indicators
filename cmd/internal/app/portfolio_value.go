@@ -60,7 +60,7 @@ func (a *App) LoadPortfolioValueHandler(c *gin.Context) {
 	julDate := c.DefaultQuery("juldate", "")
 	logrus.Debugln("julDate:,", julDate, " dbName:", databaseName)
 
-	if err := model.LoadPortfolioValues(databaseName, string(rawData), julDate, a.LookupSet); err != nil {
+	if err := model.LoadPortfolioValues(a.PGXConn, databaseName, string(rawData), julDate, a.LookupSet); err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
 		return
 	}

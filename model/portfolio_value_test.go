@@ -12,8 +12,13 @@ import (
 const portfolioValueTable = "portfolio_value"
 
 func TestLoadPortfolioValuesError(t *testing.T) {
-	t.Parallel()
-	if err := model.LoadPortfolioValues("pv", "blah", "2023123", nil); err != nil {
+	// t.Parallel()
+	pgxConn, err := pgxpool.New(context.Background(), utils.GetEnv("PG_DATABASE_URL", "postgres://postgres:postgres@localhost:5432/postgres"))
+	if err != nil {
+		t.Log(err.Error())
+		t.FailNow()
+	}
+	if err := model.LoadPortfolioValues(pgxConn, "pv", "blah", "2023123", nil); err != nil {
 		t.Log(err.Error())
 		return
 	}
@@ -22,16 +27,35 @@ func TestLoadPortfolioValuesError(t *testing.T) {
 }
 
 func TestLoadPortfolioValues(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
+	pgxConn, err := pgxpool.New(context.Background(), utils.GetEnv("PG_DATABASE_URL", "postgres://postgres:postgres@localhost:5432/postgres"))
+	if err != nil {
+		t.Log(err.Error())
+		t.FailNow()
+	}
 	ls := model.LoadLookupSet("1", string(csvLookupData))
-	if err := model.LoadPortfolioValues("pv", string(testPortfolioValues), "", ls); err != nil {
+	if err := model.LoadPortfolioValues(pgxConn, "pv", string(testPortfolioValues), "", ls); err != nil {
+		t.Log(err.Error())
+		t.Fail()
+	}
+}
+
+func TestLoadPortfolioValuesWithJulianDate(t *testing.T) {
+	// t.Parallel()
+	pgxConn, err := pgxpool.New(context.Background(), utils.GetEnv("PG_DATABASE_URL", "postgres://postgres:postgres@localhost:5432/postgres"))
+	if err != nil {
+		t.Log(err.Error())
+		t.FailNow()
+	}
+	ls := model.LoadLookupSet("1", string(csvLookupData))
+	if err := model.LoadPortfolioValues(pgxConn, "pv", string(testPortfolioValues), "2023362", ls); err != nil {
 		t.Log(err.Error())
 		t.Fail()
 	}
 }
 
 func TestLoadDBPortfolioValues(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 	ls := model.LoadLookupSet("1", string(csvLookupData))
 
 	pgxConn, err := pgxpool.New(context.Background(), utils.GetEnv("PG_DATABASE_URL", "postgres://postgres:postgres@localhost:5432/postgres"))
@@ -74,4 +98,11 @@ func TestLoadDBPortfolioValues(t *testing.T) {
 			t.FailNow()
 		}
 	}
+
+	var pv model.PortfolioValueRecord
+	if err := pv.GetLastDB(pgxConn, "HD", "portfolio_value"); err != nil {
+		t.Error(err.Error())
+		return
+	}
+	t.Log(pv)
 }

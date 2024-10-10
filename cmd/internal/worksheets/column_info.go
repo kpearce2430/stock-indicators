@@ -115,3 +115,42 @@ func (ci *ColumnInfo) SetColumnSize() error {
 	}
 	return nil
 }
+
+// AddComments adds a multiple line comment to a cell.  This will add a new line character all be the last comments.
+func (ci *ColumnInfo) AddComments(row int, author string, comments []string) error {
+	var lines []excelize.RichTextRun
+	for i, comment := range comments {
+		if i < len(comments)-1 {
+			line := fmt.Sprintf("%s\n", comment)
+			lines = append(lines, excelize.RichTextRun{Text: line, Font: &excelize.Font{Bold: true, Size: 12}})
+		} else {
+			lines = append(lines, excelize.RichTextRun{Text: comment, Font: &excelize.Font{Bold: true, Size: 12}})
+		}
+	}
+
+	comment := excelize.Comment{
+		Cell:   fmt.Sprintf("%s%d", ci.ColumnID, row),
+		Author: author,
+		Runs:   lines,
+	}
+
+	if err := ci.File.AddComment(ci.SheetName, comment); err != nil {
+		return err
+	}
+	return nil
+}
+
+// AddComment adds a line comment to a cell
+func (ci *ColumnInfo) AddComment(row int, author, title, comment string) error {
+	if err := ci.File.AddComment(ci.SheetName, excelize.Comment{
+		Cell:   fmt.Sprintf("%s%d", ci.ColumnID, row),
+		Author: author,
+		Runs: []excelize.RichTextRun{
+			{Text: title, Font: &excelize.Font{Bold: true, Size: 12}},
+			{Text: comment, Font: &excelize.Font{Bold: true, Size: 12}},
+		},
+	}); err != nil {
+		return err
+	}
+	return nil
+}

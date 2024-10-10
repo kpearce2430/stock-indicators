@@ -46,7 +46,7 @@ func createTestApp() (*app.App, error) {
 		return nil, err
 	}
 
-	if err := model.LoadPortfolioValues(app.PortfolioValueDB, string(csvPortfolioValueData), utils.JulDate(), a.LookupSet); err != nil {
+	if err := model.LoadPortfolioValues(a.PGXConn, app.PortfolioValueDB, string(csvPortfolioValueData), utils.JulDate(), a.LookupSet); err != nil {
 		logrus.Error(err.Error())
 		return nil, err
 	}

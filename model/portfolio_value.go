@@ -99,8 +99,8 @@ func NewPortfolioValue(headers []string, values []string) (*PortfolioValueRecord
 	return &pv, nil
 }
 
-func LoadPortfolioValues(databaseName, rawData, julDate string, lookups *LookUpSet) error {
-
+func LoadPortfolioValues(p *pgxpool.Pool, databaseName, rawData, julDate string, lookups *LookUpSet) error {
+	const fundHistory = "fund_history"
 	if lookups == nil {
 		logrus.Error(errMissingLookups.Error())
 		return errMissingLookups
@@ -128,6 +128,14 @@ func LoadPortfolioValues(databaseName, rawData, julDate string, lookups *LookUpS
 	foundHeader := false
 	numRows := 2
 	var headers []string
+	var date time.Time
+
+	if julDate != "" {
+		date, err = time.Parse("2006002", julDate)
+		logrus.Info("Jul Date: ", julDate, " date: ", date)
+	}
+
+	ds := NewHistoricalDataSet(p, fundHistory)
 	for {
 		record, err := r.Read()
 		if err == io.EOF {
@@ -142,13 +150,12 @@ func LoadPortfolioValues(databaseName, rawData, julDate string, lookups *LookUpS
 
 			if julDate == "" && strings.HasPrefix(record[0], "Price and Holdings as of") {
 
-				// if julDate == "" {
 				logrus.Debug("found:", record[0])
 				parts := strings.Split(record[0], ":")
 				str := strings.TrimSpace(parts[1])
 				logrus.Debugf("str[%s]", str)
 
-				date, err := time.Parse("2006-01-02", str)
+				date, err = time.Parse("2006-01-02", str)
 				if err != nil {
 					logrus.Error(err)
 					return err
@@ -218,6 +225,23 @@ func LoadPortfolioValues(databaseName, rawData, julDate string, lookups *LookUpS
 				if err != nil {
 					logrus.Error(key, " Error>>", err.Error())
 					return err
+				}
+
+				if pvRec.Type != "Bond" {
+					hist := Historical{
+						Symbol:   pvRec.Symbol,
+						Date:     date,
+						Open:     pvRec.Quote,
+						Close:    pvRec.Quote,
+						High:     pvRec.Quote,
+						Low:      pvRec.Quote,
+						AdjClose: pvRec.Quote,
+						Source:   "portfolio value",
+					}
+					if err := ds.LoadDB(&hist); err != nil {
+						logrus.Error(err.Error())
+						return err
+					}
 				}
 			}
 		}
@@ -377,21 +401,36 @@ func PortfolioValuesLoadDB(pgxConn *pgxpool.Pool, databaseName, rawData, julDate
 	return count, nil
 }
 
-func (p *PortfolioValueRecord) GetDB(pgxConn pgxpool.Pool, symbol, tableName string, date time.Time) error {
+func (p *PortfolioValueRecord) GetDB(pgxConn *pgxpool.Pool, symbol, tableName string, date time.Time) error {
 	selectStatement := fmt.Sprintf(
 		"SELECT %s From %s WHERE symbol = '%s' and date = '%s' ",
 		pvTableFields, tableName, symbol, fmt.Sprintf("%4d-%02d-%02d", date.Year(), date.Month(), date.Day()))
 
-	rows, err := pgxConn.Query(context.Background(), selectStatement)
+	return p.getRecord(pgxConn, selectStatement)
 
+}
+
+func (p *PortfolioValueRecord) GetLastDB(pgxConn *pgxpool.Pool, symbol, tableName string) error {
+	selectStatement := fmt.Sprintf(
+		"SELECT %s From %s WHERE symbol = '%s' order by date desc limit 1 ",
+		pvTableFields, tableName, symbol)
+
+	return p.getRecord(pgxConn, selectStatement)
+
+}
+
+func (p *PortfolioValueRecord) getRecord(pgxConn *pgxpool.Pool, selectStatement string) error {
+
+	rows, err := pgxConn.Query(context.Background(), selectStatement)
+	var date time.Time
 	// Iterate through the result set
 	i := 0
 	for rows.Next() {
 		err = rows.Scan(
-			date, p.Name, p.Symbol, p.Type,
-			p.Quote, p.PriceDayChange, p.PriceDayChangePct, p.Shares,
-			p.CostBasis, p.MarketValue, p.AverageCostPerShare, p.GainLoss12Month,
-			p.GainLoss, p.GainLossPct)
+			&date, &p.Name, &p.Symbol, &p.Type,
+			&p.Quote, &p.PriceDayChange, &p.PriceDayChangePct, &p.Shares,
+			&p.CostBasis, &p.MarketValue, &p.AverageCostPerShare, &p.GainLoss12Month,
+			&p.GainLoss, &p.GainLossPct)
 
 		if err != nil {
 			rows.Close()

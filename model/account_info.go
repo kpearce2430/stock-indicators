@@ -60,12 +60,12 @@ func SymbolList(ctx context.Context, pgxConn *pgxpool.Pool, lookups *LookUpSet) 
 			return symbolSet, err
 		}
 
-		value, ok := lookups.GetLookUpByName(security)
+		value, _ := lookups.GetLookUpByName(security)
 		switch {
 		case value == "DEAD":
 			continue
-		case ok:
-			security = value
+			//case ok:
+			//	security = value
 		}
 		symbolSet[symbol] = security
 
@@ -91,7 +91,7 @@ func getLatestPrice(pv *PortfolioValueRecord) float64 {
 	return 0.00
 }
 
-func AccountInfoGet(ctx context.Context, pgxConn *pgxpool.Pool, acctSymbol, julDate string) (*AccountInfo, error) {
+func AccountInfoGet(ctx context.Context, pgxConn *pgxpool.Pool, acctSymbol string) (*AccountInfo, error) {
 
 	tSet := NewTransactionSet()
 	if err := tSet.TransactionSetFromDBbySymbol(ctx, pgxConn, transactionTable, acctSymbol); err != nil {
@@ -136,21 +136,14 @@ func AccountInfoGet(ctx context.Context, pgxConn *pgxpool.Pool, acctSymbol, julD
 		acctInfo.AveragePrice = ticker.AveragePrice()
 	}
 
-	pvValue, err := GetPortfolioValue(ticker.Symbol, julDate)
-	switch {
-	case err != nil:
+	var pvValue PortfolioValueRecord
+	err := pvValue.GetLastDB(pgxConn, ticker.Symbol, "portfolio_value")
+
+	if err != nil {
 		logrus.Error("Error Getting PV for ", ticker.Symbol, " Shares:", acctInfo.NumberOfShares, ":", err.Error())
-
-	case pvValue != nil:
-		acctInfo.SecurityType = pvValue.PV.Type
-		acctInfo.LatestPrice = getLatestPrice(pvValue.PV)
-
-	default:
-		if acctInfo.NumberOfShares > 2.00 {
-			logrus.Error("No PV Value for ", ticker.Symbol, ":", julDate)
-		}
-		acctInfo.SecurityType = "unknown"
-		acctInfo.LatestPrice = 0.00
 	}
+
+	acctInfo.SecurityType = pvValue.Type
+	acctInfo.LatestPrice = getLatestPrice(&pvValue)
 	return &acctInfo, nil
 }

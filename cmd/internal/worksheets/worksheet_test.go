@@ -119,7 +119,7 @@ func TestMain(m *testing.M) {
 	julDate := utils.JulDateFromTime(business_days.GetBusinessDay(time.Date(2024, 02, 10, 00, 00, 00, 00, time.UTC)))
 	logrus.Info("julDate:", julDate)
 	// Load Portfolio Value
-	if err := model.LoadPortfolioValues(portfolioDatabaseName, portfolioValue20240210, julDate, lookups); err != nil {
+	if err := model.LoadPortfolioValues(pgxConn, portfolioDatabaseName, portfolioValue20240210, julDate, lookups); err != nil {
 		log.Fatal(err.Error())
 	}
 

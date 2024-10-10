@@ -28,6 +28,7 @@ type App struct {
 const (
 	accountListRoute    = "/accountlist"
 	dividendRoute       = "/dividend/:symbol"
+	allDividends        = "/alldividends"
 	dividendCache       = "dividends"
 	historicalDB        = "historical"
 	historicalLoadRoute = "/historical"
@@ -55,7 +56,8 @@ func (a *App) routes() {
 	router := gin.Default()
 	s := symbollist.NewSymbolList(a.PGXConn, a.LookupSet)
 	router.GET(accountListRoute, s.AccountListGet)
-	router.GET(dividendRoute, a.GetDividendCache)
+	router.GET(dividendRoute, a.GetDividendsFromDB)
+	router.GET(allDividends, a.GetAllDividends)
 	router.POST(historicalLoadRoute, a.LoadHistoricalData)
 	// router.DELETE(historicalDeleteRoute, a.DeleteHistoricalData)
 	router.POST(lookupsRoute, a.LoadLookups)

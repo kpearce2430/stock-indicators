@@ -40,9 +40,9 @@ const (
 )
 
 func (w *WorkSheet) writeStockAnalysisDetailRow(row int, columnInfo []*ColumnInfo, tickerInfo *model.AccountInfo, julDate string) error {
-	if tickerInfo.Symbol == "JENSX" {
-		logrus.Debug("DetailRow:", tickerInfo.Symbol)
-	}
+	//if tickerInfo.Symbol == "JENSX" {
+	//	logrus.Debug("DetailRow:", tickerInfo.Symbol)
+	//}
 	var (
 		err                          error
 		currentDividendRowCol        string
@@ -58,16 +58,18 @@ func (w *WorkSheet) writeStockAnalysisDetailRow(row int, columnInfo []*ColumnInf
 		totalValueColRow             string
 		yearlyDividendColRow         string
 
-		dividendInfo *models.Dividend
+		// dividendInfo *models.Dividend
+		dividendsSet model.DividendsSet
 		stockInfo    *models.GetDailyOpenCloseAggResponse
 	)
 
 	if len(tickerInfo.Symbol) < 5 {
-		dividendInfo, err = w.DividendCache.GetCacheSet(tickerInfo.Symbol)
-		if err != nil {
-			logrus.Error(tickerInfo.Symbol, " error ", err.Error())
-			// return err
-		}
+		dividendsSet.FromDBbySymbol(context.Background(), w.PGXConn, "dividends", tickerInfo.Symbol)
+		//dividendInfo, err = w.DividendCache.GetCacheSet(tickerInfo.Symbol)
+		//if err != nil {
+		//	logrus.Error(tickerInfo.Symbol, " error ", err.Error())
+		//	// return err
+		//}
 	}
 
 	if len(tickerInfo.Symbol) < 5 {
@@ -101,8 +103,14 @@ func (w *WorkSheet) writeStockAnalysisDetailRow(row int, columnInfo []*ColumnInf
 					logrus.Error("No stock info for ", tickerInfo.Symbol)
 					return fmt.Errorf("no stock info for %s", tickerInfo.Symbol)
 				}
+
 				logrus.Debug("Latest price for ", tickerInfo.Symbol, " is $", stockInfo.Close)
-				err = colInfo.WriteCell(row, stockInfo.Close, w.styles.CurrencyStyle(row))
+				// TODO: Fix close being 0 for intraday
+				if stockInfo.Close == 0 {
+					err = colInfo.WriteCell(row, stockInfo.Open, w.styles.CurrencyStyle(row))
+				} else {
+					err = colInfo.WriteCell(row, stockInfo.Close, w.styles.CurrencyStyle(row))
+				}
 
 			default: // Bond, Mutual Fund
 				err = colInfo.WriteCell(row, tickerInfo.LatestPrice, w.styles.CurrencyStyle(row))
@@ -134,17 +142,23 @@ func (w *WorkSheet) writeStockAnalysisDetailRow(row int, columnInfo []*ColumnInf
 
 		case CurrentDividend:
 			var value float64
-			if dividendInfo != nil {
-				value = dividendInfo.CashAmount
+			if len(dividendsSet.Dividends) > 0 {
+				value = dividendsSet.Dividends[0].CashAmount
 			}
+			//if dividendInfo != nil {
+			//	value = dividendInfo.CashAmount
+			//}
 			currentDividendRowCol = colInfo.GetColRow(row)
 			err = colInfo.WriteCell(row, value, w.styles.CurrencyStyle(row))
 
 		case YearlyDividend:
 			var value float64
-			if dividendInfo != nil {
-				value = dividendInfo.CashAmount * float64(dividendInfo.Frequency)
+			if len(dividendsSet.Dividends) > 0 {
+				value = dividendsSet.Dividends[0].CashAmount * float64(dividendsSet.Dividends[0].Frequency)
 			}
+			//if dividendInfo != nil {
+			//	value = dividendInfo.CashAmount * float64(dividendInfo.Frequency)
+			//}
 			err = colInfo.WriteCell(row, value, w.styles.CurrencyStyle(row))
 			yearlyDividendColRow = colInfo.GetColRow(row)
 
@@ -375,7 +389,7 @@ func (w *WorkSheet) StockAnalysis(worksheetName, julDate string) error {
 	symbolData := make(map[string]*model.AccountInfo)
 
 	for _, symbol := range sortedSymbols {
-		tickerInfo, err := model.AccountInfoGet(context.Background(), w.PGXConn, symbol, julDate)
+		tickerInfo, err := model.AccountInfoGet(context.Background(), w.PGXConn, symbol)
 		logrus.Debug("symbol [", symbol, "] shares [", tickerInfo.NumberOfShares, "]")
 
 		if err != nil {

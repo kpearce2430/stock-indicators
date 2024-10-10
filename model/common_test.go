@@ -42,6 +42,9 @@ var (
 
 	//go:embed testdata/usaix_hist.csv
 	testHistoricalData []byte
+
+	//go:embed testdata/dividends.json
+	testDividendsData []byte
 )
 
 const (

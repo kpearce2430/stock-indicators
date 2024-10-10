@@ -13,12 +13,12 @@ import (
 
 var errNoSymbolsFound = fmt.Errorf("no symbols found")
 
-func (w *WorkSheet) getSortedSymbols() ([]string, error) {
+func (w *WorkSheet) getSortedSymbols() ([]string, map[string]string, error) {
 	var sortedSymbols []string
 	symbolList, err := model.SymbolList(context.Background(), w.PGXConn, w.Lookups)
 	if err != nil {
 		logrus.Error("Error:", err.Error())
-		return sortedSymbols, err
+		return sortedSymbols, symbolList, err
 	}
 
 	for k, v := range symbolList {
@@ -28,7 +28,7 @@ func (w *WorkSheet) getSortedSymbols() ([]string, error) {
 		}
 	}
 	sort.Strings(sortedSymbols)
-	return sortedSymbols, nil
+	return sortedSymbols, symbolList, nil
 }
 
 func (w *WorkSheet) dividendAnalysisForMonth(symbol string, month, year int) (model.DividendEntry, error) {
@@ -76,6 +76,20 @@ func (w *WorkSheet) dividendTicker(dchan chan []byte, symbol string, monthsAgo i
 	dchan <- data
 }
 
+func (w *WorkSheet) accountInfo(aChan chan []byte, symbol string) {
+	acctInfo, err := model.AccountInfoGet(context.Background(), w.PGXConn, symbol)
+	if err != nil {
+		logrus.Error("Error:", err.Error())
+		// panic(err.Error())
+		aChan <- []byte("errors")
+	}
+	data, err := json.Marshal(acctInfo)
+	if err != nil {
+		aChan <- []byte("errors")
+	}
+	aChan <- data
+}
+
 func (w *WorkSheet) DividendAnalysis(worksheetName string, start time.Time, monthsAgo int) error {
 	//
 	divChannel := make(chan []byte)
@@ -86,7 +100,7 @@ func (w *WorkSheet) DividendAnalysis(worksheetName string, start time.Time, mont
 		return err
 	}
 
-	sortedSymbols, err := w.getSortedSymbols()
+	sortedSymbols, symbolList, err := w.getSortedSymbols()
 	if err != nil {
 		logrus.Error("Error:", err.Error())
 		return err
@@ -97,6 +111,7 @@ func (w *WorkSheet) DividendAnalysis(worksheetName string, start time.Time, mont
 		return errNoSymbolsFound
 	}
 
+	// Pull the history data
 	historyMatrix := make(map[string]*model.DividendHistory)
 	for _, symbol := range sortedSymbols {
 		go w.dividendTicker(divChannel, symbol, monthsAgo)
@@ -121,6 +136,31 @@ func (w *WorkSheet) DividendAnalysis(worksheetName string, start time.Time, mont
 		}
 	}
 
+	// Pull the account info data
+	acctInfoMap := make(map[string]*model.AccountInfo)
+	acctInfoChannel := make(chan []byte)
+	for _, symbol := range sortedSymbols {
+		go w.accountInfo(acctInfoChannel, symbol)
+	}
+
+	for {
+		var acctInfo model.AccountInfo
+		data, ok := <-acctInfoChannel
+		logrus.Debug(string(data))
+		if err := json.Unmarshal(data, &acctInfo); err != nil {
+			logrus.Error("Error:", err.Error())
+			return err
+		}
+
+		if ok == false {
+			break
+		}
+		acctInfoMap[acctInfo.Symbol] = &acctInfo
+		if len(sortedSymbols) == len(acctInfoMap) {
+			break
+		}
+	}
+
 	var allColumns []*ColumnInfo
 	colInfoSymbol, err := NewColumnInfo(w.File, Symbol, worksheetName, 1)
 	allColumns = append(allColumns, colInfoSymbol)
@@ -137,7 +177,7 @@ func (w *WorkSheet) DividendAnalysis(worksheetName string, start time.Time, mont
 			month = 12
 		}
 
-		colMonth.SetMaxSize(10)
+		colMonth.SetMaxSize(12)
 		allColumns = append(allColumns, colMonth)
 		col++
 	}
@@ -154,11 +194,52 @@ func (w *WorkSheet) DividendAnalysis(worksheetName string, start time.Time, mont
 			continue
 		}
 
+		//acctInfo, err := model.AccountInfoGet(context.Background(), w.PGXConn, symbol)
+		//if err != nil {
+		//	logrus.Error("Error:", err.Error())
+		//	return err
+		//}
+		acctInfo, ok := acctInfoMap[symbol]
+		if !ok {
+			logrus.Error("Skipping:", symbol, " not found")
+			continue
+		}
+
 		row++
 		for i, colInfo := range allColumns {
 			switch i {
 			case 0:
 				_ = colInfo.WriteCell(row, symbol, w.styles.TextStyle(row))
+				security := symbolList[symbol]
+				var msg string
+				if acctInfo.NumberOfShares > 1 {
+					// strconv.FormatFloat(acctInfo.NumberOfShares, 'f', -1, 64)
+
+					shares := fmt.Sprintf("%.4f", acctInfo.NumberOfShares)
+					for shares[len(shares)-1] == '0' {
+						shares = shares[0 : len(shares)-1]
+					}
+
+					if shares[len(shares)-1] == '.' {
+						shares = shares[0 : len(shares)-1]
+					}
+					var comments []string
+					comments = append(comments, security)
+					comments = append(comments, "Shares: "+shares)
+					err = colInfo.AddComments(row, "kep", comments)
+					if err != nil {
+						logrus.Error("Error:", err.Error())
+						return err
+					}
+				} else {
+					msg = fmt.Sprintf("%s\nShares: None", security)
+
+					err = colInfo.AddComment(row, "kep", "Security: ", msg)
+					if err != nil {
+						logrus.Error("Error:", err.Error())
+						return err
+					}
+				}
 			default:
 				entry := symbolHistory.DividendEntries[i-1]
 				logrus.Debug(symbol, " > ", entry.Year, "/", entry.Month, " [", entry.Amount, "]")
@@ -235,10 +316,9 @@ func (w *WorkSheet) DividendAnalysis(worksheetName string, start time.Time, mont
 		WorksheetName: worksheetName,
 		Title:         "Year Over Year Dividends",
 		Type:          excelize.Col,
-		Height:        300,
-		Width:         500,
+		Height:        250,
+		Width:         450,
 		VaryColors:    true,
-		// xReverse:      true,
 	}
 	yoyDividendChart.AddValueSeries(colB.ColumnID, summaryRow, colB.ColumnID, summaryRow+numSeries-1)
 	yoyDividendChart.AddCategorySeries(colA.ColumnID, summaryRow, colA.ColumnID, summaryRow+numSeries-1)

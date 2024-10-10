@@ -388,7 +388,6 @@ func (ts *TransactionSet) TransactionSetFromDBbyId(ctx context.Context, pg *pgxp
 }
 
 func (ts *TransactionSet) TransactionSetFromDBbySymbol(ctx context.Context, pg *pgxpool.Pool, tableName, symbol string) error {
-
 	return ts.getTransactions(ctx, pg, fmt.Sprintf(
 		"SELECT %s FROM %s WHERE symbol = '%s' ORDER BY date,id;",
 		TransactionFields, tableName, symbol))

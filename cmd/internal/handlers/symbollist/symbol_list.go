@@ -3,7 +3,6 @@ package symbollist
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/kpearce2430/keputils/utils"
 	"github.com/kpearce2430/stock-tools/model"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -52,9 +51,9 @@ func (s *SymbolList) AccountListGet(c *gin.Context) {
 func (s *SymbolList) TickerInfoGet(c *gin.Context) {
 	acctSymbol := c.Param("symbol")
 	logrus.Info("symbol:", acctSymbol)
-	julDate := c.DefaultQuery("juldate", utils.JulDate())
+	// julDate := c.DefaultQuery("juldate", utils.JulDate())
 
-	acctInfo, err := model.AccountInfoGet(c.Request.Context(), s.PGXConn, acctSymbol, julDate)
+	acctInfo, err := model.AccountInfoGet(c.Request.Context(), s.PGXConn, acctSymbol)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, err.Error())
 		return
