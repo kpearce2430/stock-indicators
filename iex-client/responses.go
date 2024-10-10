@@ -1,6 +1,4 @@
-package responses
-
-import iex_client "iex-indicators/iex-client"
+package iex_client
 
 type CouchIndicatorResponse struct {
 	Id             string `json:"_id"`
@@ -10,5 +8,5 @@ type CouchIndicatorResponse struct {
 	Period         string
 	StockSymbol    string
 	Date           string
-	IndicatorData  iex_client.IexIndicatorResponse
+	IndicatorData  IexIndicatorResponse
 }

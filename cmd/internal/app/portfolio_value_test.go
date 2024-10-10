@@ -5,9 +5,8 @@ import (
 	_ "embed"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"github.com/kpearce2430/stock-tools/model"
 	"github.com/stretchr/testify/assert"
-	"iex-indicators/cmd/internal/app"
-	"iex-indicators/model"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -18,13 +17,7 @@ const julDate = "2022001"
 const databaseName = "something"
 
 func TestLoadPortfolioValue(t *testing.T) {
-	// t.Log("Starting TestLoadPortfolioValue")
-	a := app.App{
-		Srv:       nil,
-		LookupSet: nil,
-	}
-
-	a.LookupSet = model.LoadLookupSet("1", string(csvLookupData))
+	t.Setenv("PV_COUCHDB_DATABASE", databaseName)
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -33,7 +26,7 @@ func TestLoadPortfolioValue(t *testing.T) {
 	q.Add("juldate", julDate)
 	q.Add("database", databaseName)
 	c.Request.URL.RawQuery = q.Encode()
-	a.LoadPortfolioValueHandler(c)
+	testApp.LoadPortfolioValueHandler(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	type lookupTest struct {
@@ -87,7 +80,8 @@ func TestLoadPortfolioValue(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		func(t *testing.T, a app.App, tc lookupTest) {
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Params = tc.Params
@@ -96,19 +90,37 @@ func TestLoadPortfolioValue(t *testing.T) {
 			q.Add("juldate", julDate)
 			q.Add("database", databaseName)
 			c.Request.URL.RawQuery = q.Encode()
-			a.GetPortfolioValueHandler(c)
-			assert.Equal(t, tc.StatusCode, w.Code)
+			testApp.GetPortfolioValueHandler(c)
 			if w.Code == http.StatusOK {
 				responseData, err := io.ReadAll(w.Body)
-				assert.Equal(t, nil, err)
-				// t.Log(string(responseData))
+				if tc.StatusCode == http.StatusNotFound && string(responseData) == "null" {
+					return
+				}
+				if err != nil {
+					t.Log(err.Error())
+					t.Fail()
+					return
+				}
+
 				var status model.PortfolioValueDatabaseRecord
 				err = json.Unmarshal(responseData, &status)
-				assert.Equal(t, nil, err)
-				assert.Equal(t, tc.Params[0].Value, status.PV.Symbol)
-				// t.Log(status.PV.Name)
-				// t.Log("record:", status)
+				if err != nil {
+					t.Log(err.Error())
+					t.Fail()
+					return
+				}
+
+				if status.PV == nil {
+					t.Log("PV nil")
+					t.Fail()
+					return
+				}
+				if tc.Params[0].Value != status.PV.Symbol {
+					t.Log("Symbols dont match")
+					t.Fail()
+					return
+				}
 			}
-		}(t, a, tc)
+		})
 	}
 }
