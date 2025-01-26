@@ -15,7 +15,6 @@ func TestTickerAppl(t *testing.T) {
 	}
 
 	Tickers := make(map[string]*model.Ticker)
-
 	for _, tr := range testSet1.TransactionRows {
 		e, err := model.NewEntityFromTransaction(tr)
 
@@ -42,4 +41,46 @@ func TestTickerAppl(t *testing.T) {
 		t.Log(ticker.NetCost())
 		t.Log(ticker.AveragePrice())
 	}
+}
+
+func TestTicker_GetAccount(t *testing.T) {
+	testSet := model.NewTransactionSet()
+	if err := testSet.Load(testTransactionsAll); err != nil {
+		t.Log(err.Error())
+		t.Fail()
+		return
+	}
+
+	Tickers := make(map[string]*model.Ticker)
+	for _, tr := range testSet.TransactionRows {
+		e, err := model.NewEntityFromTransaction(tr)
+
+		if err != nil {
+			t.Log(err.Error())
+			t.Fail()
+			return
+		}
+
+		ticker := Tickers[e.Symbol]
+		if ticker == nil {
+			ticker = model.NewTicker(e.Symbol)
+			Tickers[e.Symbol] = ticker
+		}
+		ticker.AddEntity(e)
+	}
+
+	ticker, ok := Tickers["HD"]
+	if !ok {
+		t.Error("Ticker not found")
+		return
+	}
+
+	acct := ticker.GetAccount("HD ESPP")
+	if acct == nil {
+		t.Error("Account not found")
+		return
+	}
+
+	t.Log(acct.DividendsPaid())
+	t.Log(len(acct.Entities))
 }

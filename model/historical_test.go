@@ -79,11 +79,11 @@ func TestHistorical_LoadHistoricalDB(t *testing.T) {
 	const symbol = "USAIX"
 	const source = "testcases"
 	const fundHistory = "fund_history"
-	pgxConn, err := pgxpool.New(context.Background(), utils.GetEnv("PG_DATABASE_URL",
-		"postgres://postgres:postgres@localhost:5432/postgres"))
+
+	pgxConn, err := pgxpool.New(context.Background(), utils.GetEnv("PG_DATABASE_URL", "postgres://postgres:postgres@localhost:5432/postgres"))
 	if err != nil {
-		t.Log(err.Error())
-		t.FailNow()
+		t.Error(err.Error())
+		return
 	}
 
 	ds := model.NewHistoricalDataSet(pgxConn, fundHistory)

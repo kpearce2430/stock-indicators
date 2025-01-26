@@ -10,12 +10,12 @@ import (
 )
 
 type WorkSheet struct {
-	PGXConn       *pgxpool.Pool
-	Lookups       *model.LookUpSet
-	File          *excelize.File
-	styles        *Styles
-	StockCache    *stock_cache.Cache[models.GetDailyOpenCloseAggResponse]
-	DividendCache *stock_cache.Cache[models.Dividend]
+	PGXConn    *pgxpool.Pool
+	Lookups    *model.LookUpSet
+	File       *excelize.File
+	styles     *Styles
+	StockCache *stock_cache.Cache[models.GetDailyOpenCloseAggResponse]
+	//DividendCache *stock_cache.Cache[models.Dividend]
 }
 
 func NewWorkSheet(f *excelize.File, conn *pgxpool.Pool) *WorkSheet {

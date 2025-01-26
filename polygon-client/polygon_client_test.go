@@ -3,8 +3,10 @@ package polygon_client_test
 import (
 	"encoding/json"
 	business_days "github.com/kpearce2430/keputils/business-days"
+	"github.com/kpearce2430/keputils/utils"
 	polygon_client "github.com/kpearce2430/stock-tools/polygon-client"
 	"github.com/polygon-io/client-go/rest/models"
+	"strings"
 	"testing"
 	"time"
 )
@@ -33,6 +35,12 @@ func TestMain(m *testing.M) {
 }
 
 func TestPolygonClient_GetPreviousClose(t *testing.T) {
+	key := "None"
+	utils.GetEnv("POLYGON_API", key)
+	if strings.Compare(key, "None") == 0 {
+		t.Skip("No POLYGON_API key")
+		return
+	}
 	t.Parallel()
 	for _, tc := range tests {
 		t.Run(tc.Symbol, func(t *testing.T) {
@@ -61,6 +69,12 @@ func TestPolygonClient_GetPreviousClose(t *testing.T) {
 }
 
 func TestPolygonClient_Dividends(t *testing.T) {
+	key := "None"
+	utils.GetEnv("POLYGON_API", key)
+	if strings.Compare(key, "None") == 0 {
+		t.Skip("No POLYGON_API key")
+		return
+	}
 	t.Parallel()
 	for _, tc := range tests {
 		t.Run(tc.Symbol, func(t *testing.T) {
@@ -87,6 +101,12 @@ func TestPolygonClient_Dividends(t *testing.T) {
 }
 
 func TestPolygonClient_GetDailyOpenCloseAgg(t *testing.T) {
+	key := "None"
+	utils.GetEnv("POLYGON_API", key)
+	if strings.Compare(key, "None") == 0 {
+		t.Skip("No POLYGON_API key")
+		return
+	}
 	t.Parallel()
 	for _, tc := range tests {
 		t.Run(tc.Symbol, func(t *testing.T) {
@@ -112,7 +132,12 @@ func TestPolygonClient_GetDailyOpenCloseAgg(t *testing.T) {
 }
 
 func TestPolygonClient_GetRSI(t *testing.T) {
-	// hist_usaix.csv.Parallel()
+	key := "None"
+	utils.GetEnv("POLYGON_API", key)
+	if strings.Compare(key, "None") == 0 {
+		t.Skip("No POLYGON_API key")
+		return
+	}
 
 	p = polygon_client.NewPolygonClient("")
 
@@ -124,7 +149,6 @@ func TestPolygonClient_GetRSI(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.Symbol, func(t *testing.T) {
-			// hist_usaix.csv.Parallel()
 			request := polygon_client.PolygonRSIRequest{
 				RequestDate: business_days.GetBusinessDay(time.Now()),
 			}

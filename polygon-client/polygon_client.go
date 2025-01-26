@@ -24,44 +24,6 @@ func NewPolygonClient(key string) *PolygonClient {
 }
 
 func (p *PolygonClient) GetIndicator(indicator, symbol string, args []byte) ([]byte, error) {
-
-	//const (
-	//	invalidRequestTime = "invalid request time"
-	//	missingSymbol      = "missing symbol"
-	//	missingType        = "missing type"
-	//	layout             = "2006-01-02"
-	//)
-
-	//var info map[string]string
-
-	//if err := json.Unmarshal(args, &info); err != nil {
-	//	logrus.Error(err.Error())
-	//	return []byte{}, err
-	//}
-
-	//symbol, ok := info["symbol"]
-	//if !ok {
-	//	logrus.Error(missingSymbol)
-	//	return []byte{}, fmt.Errorf(missingSymbol)
-	//}
-
-	//typeRequest, ok := info["type"]
-	//if !ok {
-	//	logrus.Error(missingType)
-	//	return []byte{}, fmt.Errorf(missingType)
-	//}
-
-	//var err error
-	//requestTime := time.Now()
-	//requestTimeStr, ok := info["time"]
-	//if ok {
-	//	requestTime, err = time.Parse(layout, requestTimeStr)
-	//	if err != nil {
-	//		fmt.Println(err.Error())
-	//		return []byte{}, fmt.Errorf(invalidRequestTime)
-	//	}
-	//}
-
 	switch indicator {
 	case "daily":
 		return p.GetDailyOpenCloseAgg(symbol)
@@ -84,7 +46,6 @@ func (p *PolygonClient) GetDataSet(symbol string, args ...string) ([]byte, error
 	var dividends []models.Dividend
 
 	for iter.Next() {
-		// log.Print(symbol, ":", iter.Item()) // do something with the current value
 		div := iter.Item()
 		dividends = append(dividends, div)
 	}
@@ -113,7 +74,6 @@ func (p *PolygonClient) GetPreviousClose(symbol string) ([]byte, error) {
 }
 
 func (p *PolygonClient) GetDailyOpenCloseAgg(symbol string, args ...string) ([]byte, error) {
-
 	var reqDate time.Time
 	switch len(args) {
 	case 0:
@@ -157,7 +117,6 @@ type PolygonRSIRequest struct {
 }
 
 func (p *PolygonClient) CallRSI(symbol string, client *PolygonRSIRequest) (*models.GetRSIResponse, error) {
-
 	data, err := json.Marshal(client)
 	if err != nil {
 		logrus.Error(err.Error())
