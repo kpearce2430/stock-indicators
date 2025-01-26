@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"log"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -84,6 +85,12 @@ func TestNewCache(t *testing.T) {
 }
 
 func TestCache_GetStockQuote(t *testing.T) {
+	key := "None"
+	utils.GetEnv("POLYGON_API", key)
+	if strings.Compare(key, "None") == 0 {
+		t.Skip("No POLYGON_API key")
+		return
+	}
 	tickers := []string{"HD", "CSX", "AAPL"}
 
 	quoteConfig := couchdatabase.DatabaseConfig{
@@ -193,6 +200,12 @@ func TestCache_GetPastStockQuote(t *testing.T) {
 }
 
 func TestCache_GetStockDividends(t *testing.T) {
+	key := "None"
+	utils.GetEnv("POLYGON_API", key)
+	if strings.Compare(key, "None") == 0 {
+		t.Skip("No POLYGON_API key")
+		return
+	}
 
 	tickers := []string{"HD", "CSX", "AAPL"}
 

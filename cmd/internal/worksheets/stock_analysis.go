@@ -65,11 +65,6 @@ func (w *WorkSheet) writeStockAnalysisDetailRow(row int, columnInfo []*ColumnInf
 
 	if len(tickerInfo.Symbol) < 5 {
 		dividendsSet.FromDBbySymbol(context.Background(), w.PGXConn, "dividends", tickerInfo.Symbol)
-		//dividendInfo, err = w.DividendCache.GetCacheSet(tickerInfo.Symbol)
-		//if err != nil {
-		//	logrus.Error(tickerInfo.Symbol, " error ", err.Error())
-		//	// return err
-		//}
 	}
 
 	if len(tickerInfo.Symbol) < 5 {
@@ -270,11 +265,6 @@ func (w *WorkSheet) writeStockAnalysisDetailRow(row int, columnInfo []*ColumnInf
 }
 
 func (w *WorkSheet) StockAnalysis(worksheetName, julDate string) error {
-
-	if w.DividendCache == nil {
-		return fmt.Errorf("no dividend cache loaded")
-	}
-
 	if w.StockCache == nil {
 		return fmt.Errorf("no stock cache loaded")
 	}

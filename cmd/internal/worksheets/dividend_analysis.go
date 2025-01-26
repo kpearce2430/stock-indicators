@@ -31,18 +31,18 @@ func (w *WorkSheet) getSortedSymbols() ([]string, map[string]string, error) {
 	return sortedSymbols, symbolList, nil
 }
 
-func (w *WorkSheet) dividendAnalysisForMonth(symbol string, month, year int) (model.DividendEntry, error) {
+func (w *WorkSheet) dividendAnalysisForMonth(symbol string, month, year int) (*model.DividendEntry, error) {
 
-	divEntry := model.DividendEntry{
-		Symbol: symbol,
-		Month:  month,
-		Year:   year,
-	}
-
-	err := divEntry.GetDividendForYearMonth(w.PGXConn)
+	divEntry, err := model.GetDividendEntryForYearMonth(w.PGXConn, symbol, year, month)
+	//divEntry := model.DividendEntry{
+	//	Symbol: symbol,
+	//	Month:  month,
+	//	Year:   year,
+	//}
+	//
+	//err := divEntry.GetDividendForYearMonth(w.PGXConn)
 	if err != nil {
 		logrus.Error(err.Error())
-
 	}
 	return divEntry, err
 }
@@ -56,10 +56,14 @@ func (w *WorkSheet) dividendTicker(dchan chan []byte, symbol string, monthsAgo i
 
 	for i := 0; i < monthsAgo; i++ {
 		logrus.Debug("Doing:", symbol, ",", year, ",", month)
-		divEntry := model.NewDividendEntry(symbol, year, month)
-		if err := divEntry.GetDividendForYearMonth(w.PGXConn); err != nil {
+		divEntry, err := model.GetDividendEntryForYearMonth(w.PGXConn, symbol, year, month)
+		if err != nil {
 			logrus.Error(err.Error())
 		}
+		//divEntry := model.NewDividendEntry(symbol, year, month)
+		//if err := divEntry.GetDividendForYearMonth(w.PGXConn); err != nil {
+		//	logrus.Error(err.Error())
+		//}
 		tickerHistory.DividendEntries = append(tickerHistory.DividendEntries, divEntry)
 
 		month = month - 1
@@ -177,7 +181,7 @@ func (w *WorkSheet) DividendAnalysis(worksheetName string, start time.Time, mont
 			month = 12
 		}
 
-		colMonth.SetMaxSize(12)
+		colMonth.SetMaxSize(9)
 		allColumns = append(allColumns, colMonth)
 		col++
 	}
@@ -194,11 +198,6 @@ func (w *WorkSheet) DividendAnalysis(worksheetName string, start time.Time, mont
 			continue
 		}
 
-		//acctInfo, err := model.AccountInfoGet(context.Background(), w.PGXConn, symbol)
-		//if err != nil {
-		//	logrus.Error("Error:", err.Error())
-		//	return err
-		//}
 		acctInfo, ok := acctInfoMap[symbol]
 		if !ok {
 			logrus.Error("Skipping:", symbol, " not found")
@@ -259,6 +258,10 @@ func (w *WorkSheet) DividendAnalysis(worksheetName string, start time.Time, mont
 			formula := fmt.Sprintf("=sum($%s$2:$%s%d)", colInfo.ColumnID, colInfo.ColumnID, lastRow)
 			logrus.Debug(formula)
 			_ = colInfo.WriteCell(row, formula, w.styles.CurrencyStyle(row))
+		}
+		if err = colInfo.SetColumnSize(); err != nil {
+			logrus.Error(err.Error())
+			return err
 		}
 	}
 
@@ -327,7 +330,7 @@ func (w *WorkSheet) DividendAnalysis(worksheetName string, start time.Time, mont
 		return err
 	}
 
-	return w.YearOverYearDividend(fmt.Sprintf("%s-YoY", worksheetName), worksheetName, lastRow+1, start.Year(), int(start.Month()))
+	return w.YearOverYearDividendNew(fmt.Sprintf("%s-YoY", worksheetName), worksheetName, start.Year(), int(start.Month()))
 }
 
 func reverse(cells []string) []string {
@@ -367,7 +370,7 @@ func (w *WorkSheet) YearOverYearDividend(worksheetName, divAnalysisWorksheet str
 
 	colInfo, err := NewColumnInfo(w.File, "Total", worksheetName, 14)
 	allColumns = append(allColumns, colInfo)
-	colInfo.SetMaxSize(10)
+	colInfo.SetMaxSize(12)
 	colInfo.SetFormula(true)
 	ciTotalNum := len(allColumns) - 1
 
@@ -421,6 +424,97 @@ func (w *WorkSheet) YearOverYearDividend(worksheetName, divAnalysisWorksheet str
 		ciTotal := allColumns[ciTotalNum]
 		_ = ciTotal.WriteCell(row, fmt.Sprintf("=sum(%s%d:%s%d)", sumStart, row, sumEnd, row), w.styles.CurrencyStyle(row))
 		row++
+	}
+
+	for _, colInfo = range allColumns {
+		if err = colInfo.SetColumnSize(); err != nil {
+			logrus.Error(err.Error())
+			return err
+		}
+	}
+	return nil
+}
+
+func (w *WorkSheet) YearOverYearDividendNew(worksheetName, divAnalysisWorksheet string, curYear, curMonth int) error {
+
+	_, err := w.File.GetSheetIndex(divAnalysisWorksheet)
+	if err != nil {
+		logrus.Error(err.Error())
+		return err
+	}
+
+	_, err = w.File.NewSheet(worksheetName)
+	if err != nil {
+		logrus.Error(err.Error())
+		return err
+	}
+
+	var allColumns []*ColumnInfo
+	colInfoSymbol, err := NewColumnInfo(w.File, "Year", worksheetName, 1)
+	allColumns = append(allColumns, colInfoSymbol)
+	for month := 1; month <= 12; month++ {
+		var colMonth *ColumnInfo
+		monthString := time.Month(month).String()
+		// monthString = monthString[0:3]
+		colMonth, err = NewColumnInfo(w.File, fmt.Sprintf("%s", monthString), worksheetName, month+1)
+		if err != nil {
+			logrus.Error(err.Error())
+			return err
+		}
+		colMonth.SetMaxSize(10)
+		// colMonth.SetFormula(true)
+		allColumns = append(allColumns, colMonth)
+	}
+
+	colInfo, err := NewColumnInfo(w.File, "Total", worksheetName, 14)
+	if err != nil {
+		logrus.Error(err.Error())
+		return err
+	}
+
+	allColumns = append(allColumns, colInfo)
+	colInfo.SetMaxSize(12)
+	colInfo.SetFormula(true)
+	ciTotalNum := len(allColumns) - 1
+
+	sumStart, _ := excelize.ColumnNumberToName(2)
+	sumEnd, _ := excelize.ColumnNumberToName(13)
+
+	row := 1
+	for _, colInfo := range allColumns {
+		_ = colInfo.WriteHeader(row, w.styles.Header)
+	}
+
+	row++
+	for year := 2021; year <= curYear; year++ {
+		ci := allColumns[0]
+		_ = ci.WriteCell(row, fmt.Sprintf("%d", year), w.styles.TextStyle(row))
+		for month := 1; month <= 12; month++ {
+			if year == curYear && month > curMonth {
+				break
+			}
+			dh, err := model.DividendHistoryFromDB(context.Background(), w.PGXConn, "", year, month)
+			// logrus.Info("dh>", dh.Sum())
+			if err != nil {
+				logrus.Error(err.Error())
+				return err
+			}
+			ci := allColumns[month]
+			err = ci.WriteCell(row, dh.Sum(), w.styles.CurrencyStyle(row))
+			if err != nil {
+				logrus.Error(err.Error())
+				return err
+			}
+		}
+		ciTotal := allColumns[ciTotalNum]
+		_ = ciTotal.WriteCell(row, fmt.Sprintf("=sum(%s%d:%s%d)", sumStart, row, sumEnd, row), w.styles.CurrencyStyle(row))
+		row++
+	}
+	for _, colInfo = range allColumns {
+		if err = colInfo.SetColumnSize(); err != nil {
+			logrus.Error(err.Error())
+			return err
+		}
 	}
 	return nil
 }

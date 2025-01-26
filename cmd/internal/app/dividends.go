@@ -75,22 +75,6 @@ func (a *App) GetDividends(c *gin.Context) {
 }
 
 func (a *App) GetAllDividends(c *gin.Context) {
-	//symbolList, err := model.SymbolList(context.Background(), a.PGXConn, a.LookupSet)
-	//if err != nil {
-	//	c.IndentedJSON(http.StatusInternalServerError, err)
-	//	return
-	//}
-	//
-	//var sortedSymbols []string
-	//for k, _ := range symbolList {
-	//	if k != "" {
-	//		sortedSymbols = append(sortedSymbols, k)
-	//	}
-	//}
-	//
-	//// Needed for the percentage of portfolio formula
-	//sort.Strings(sortedSymbols)
-
 	symbolMap, err := model.PortfolioValueGetTypes(a.PGXConn, PortfolioValueDB)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, err)

@@ -34,6 +34,7 @@ const (
 	historicalLoadRoute = "/historical"
 	// historicalDeleteRoute = "/historical/:key"
 	lookupsRoute         = "/lookups/:id"
+	lookupsDBRoute       = "/lookups/db"
 	macdRoute            = "/macd"
 	PortfolioValueDB     = "portfolio_value"
 	PortfolioLoadDBRoute = "/portfoliovalue"
@@ -56,12 +57,15 @@ func (a *App) routes() {
 	router := gin.Default()
 	s := symbollist.NewSymbolList(a.PGXConn, a.LookupSet)
 	router.GET(accountListRoute, s.AccountListGet)
+	router.GET("/accountdividends", a.AccountDividends)
 	router.GET(dividendRoute, a.GetDividendsFromDB)
 	router.GET(allDividends, a.GetAllDividends)
 	router.POST(historicalLoadRoute, a.LoadHistoricalData)
 	// router.DELETE(historicalDeleteRoute, a.DeleteHistoricalData)
-	router.POST(lookupsRoute, a.LoadLookups)
-	router.GET(lookupsRoute, a.GetLookups)
+	//router.POST(lookupsRoute, a.LoadLookups)
+	//router.GET(lookupsRoute, a.GetLookups)
+	router.POST(lookupsDBRoute, a.LoadLookupsToPostgres)
+	router.GET(lookupsDBRoute, a.GetLookupsFromPostgres)
 	router.GET(macdRoute, indicators.GetMACDRouter)
 	router.POST(pvRoute, a.LoadPortfolioValueHandler)
 	router.POST(PortfolioLoadDBRoute, a.LoadDBPortfolioValueHandler)
@@ -100,10 +104,10 @@ func NewApp(port string) *App {
 		logrus.Fatal("Postgres not ready")
 	}
 
-	lookupSet := utils.GetEnv("LOOKUPS_SET", "2")
-	a.LookupSet, err = a.getLookupsFromDatabase(lookupSet)
+	// lookupSet := utils.GetEnv("LOOKUPS_SET", "2")
+	a.LookupSet, err = a.getLookupsFromPostgres("lookups")
 	if err != nil {
-		logrus.Error("Error loading lookups:", err.Error())
+		logrus.Fatal("Error loading lookups:", err.Error())
 	}
 
 	quoteConfig := couch_database.DatabaseConfig{
@@ -126,13 +130,11 @@ func NewApp(port string) *App {
 	}
 	a.DividendCache, err = stock_cache.NewCache[models.Dividend](&divConfig, polygonclient.NewPolygonClient(""))
 	if err != nil {
-		logrus.Error("Error Creating Dividend Cache:", err.Error())
-		panic(err.Error())
+		logrus.Fatal("Error Creating Dividend Cache:", err.Error())
 	}
 
 	if status := a.CouchDBCheck(); status != true {
 		logrus.Fatal("CouchDB Not Up")
-		return nil
 	}
 
 	a.routes()

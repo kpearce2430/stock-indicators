@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kpearce2430/keputils/utils"
 	"github.com/kpearce2430/stock-tools/model"
+	"strings"
 	"testing"
 	"time"
 )
@@ -18,10 +19,13 @@ const (
 )
 
 func TestSymbolInformationSet_MutualFund(t *testing.T) {
-	// hist_usaix.csv.Skip("TBD")
-
-	pgxConn, err := pgxpool.New(context.Background(), utils.GetEnv("PG_DATABASE_URL", "postgres://postgres:postgres@localhost:5432/postgres"))
+	pgxConn, err := connectToPostgres()
 	if err != nil {
+		t.Log(err.Error())
+		t.FailNow()
+	}
+
+	if err = truncateTransactions(pgxConn); err != nil {
 		t.Log(err.Error())
 		t.FailNow()
 	}
@@ -62,6 +66,13 @@ func TestSymbolInformationSet_MutualFund(t *testing.T) {
 }
 
 func TestSymbolInformation_Stock(t *testing.T) {
+	key := "None"
+	utils.GetEnv("POLYGON_API", key)
+	if strings.Compare(key, "None") == 0 {
+		t.Skip("No POLYGON_API key")
+		return
+	}
+
 	pgxConn, err := pgxpool.New(context.Background(), utils.GetEnv("PG_DATABASE_URL", "postgres://postgres:postgres@localhost:5432/postgres"))
 	if err != nil {
 		t.Log(err.Error())
@@ -96,8 +107,20 @@ func TestSymbolInformation_Stock(t *testing.T) {
 }
 
 func TestNewSymbolDetailSet(t *testing.T) {
-	pgxConn, err := pgxpool.New(context.Background(), utils.GetEnv("PG_DATABASE_URL", "postgres://postgres:postgres@localhost:5432/postgres"))
+	key := "None"
+	utils.GetEnv("POLYGON_API", key)
+	if strings.Compare(key, "None") == 0 {
+		t.Skip("No POLYGON_API key")
+		return
+	}
+
+	pgxConn, err := connectToPostgres()
 	if err != nil {
+		t.Log(err.Error())
+		t.FailNow()
+	}
+
+	if err = truncateTransactions(pgxConn); err != nil {
 		t.Log(err.Error())
 		t.FailNow()
 	}

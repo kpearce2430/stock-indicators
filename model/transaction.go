@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kpearce2430/keputils/utils"
@@ -13,7 +14,7 @@ import (
 	"time"
 )
 
-var errUnexpectedNumberOfTransactions = fmt.Errorf("unexpected number of transactions found")
+var errUnexpectedNumberOfTransactions = errors.New("unexpected number of transactions found")
 
 const TransactionFields = "id, date, type,  symbol, security, security_payee,  account, description, shares, investment_amount,amount"
 
@@ -329,12 +330,10 @@ func TransactionSetLoadToDB(pgxConn *pgxpool.Pool, lookups *LookUpSet, transTabl
 
 	logrus.Info("Number of rows :", len(tSet.TransactionRows))
 	for _, tr := range tSet.TransactionRows {
-
 		if tr.Type == "Payment/Deposit" {
 			logrus.Debug("Skipping ", tr.Id, " ", tr.Type)
 			continue
 		}
-		// logrus.Debug("Sending ID ", tr.Id, " ", tr.Type)
 		value, ok := lookups.GetLookUpByName(tr.Security)
 		switch {
 		case value == "DEAD":
@@ -429,6 +428,59 @@ func (ts *TransactionSet) TransactionsForMonth(ctx context.Context, pg *pgxpool.
 			TransactionFields, transactionTable, symbol, fmt.Sprintf("%4d-%02d-01", year, month), fmt.Sprintf("%4d-%02d-01", year, endMonth))
 	}
 	return ts.getTransactions(ctx, pg, queryStatement)
+}
+
+func (ts *TransactionSet) GetTransactions(ctx context.Context, pg *pgxpool.Pool, symbol string, year, month int) error {
+	now := time.Now()
+	if symbol == "" && !intInRange(year, 1980, now.Year()) && !intInRange(month, 1, 12) {
+		return errInvalidArguments
+	}
+
+	if year != 0 && !intInRange(year, 1980, now.Year()) {
+		return errInvalidYear
+	}
+
+	if !intInRange(month, 0, 12) {
+		return errInvalidMonth
+	}
+
+	needAnd := false
+	var sb strings.Builder
+	sb.WriteString("SELECT ")
+	sb.WriteString(TransactionFields)
+	sb.WriteString(" FROM ")
+	sb.WriteString(transactionTable)
+	sb.WriteString(" WHERE ")
+	if symbol != "" {
+		sb.WriteString(" symbol = '")
+		sb.WriteString(symbol)
+		needAnd = true
+		sb.WriteString("'")
+	}
+
+	if intInRange(year, 1980, now.Year()) && intInRange(month, 1, 12) {
+		if needAnd {
+			sb.WriteString(" AND ")
+		}
+		switch month {
+		case 12:
+			endMonth := 01
+			endYear := year + 1
+			sb.WriteString(" date >= '")
+			sb.WriteString(fmt.Sprintf("%4d-%02d-01' and date < '", year, month))
+			sb.WriteString(fmt.Sprintf("%4d-%02d-01'", endYear, endMonth))
+			// sb.WriteString(fmt.Sprintf(" date >= '%s' and date < '%s'",))
+
+		default:
+			endMonth := month + 1
+			sb.WriteString(" date >= '")
+			sb.WriteString(fmt.Sprintf("%4d-%02d-01' and date < '", year, month))
+			sb.WriteString(fmt.Sprintf("%4d-%02d-01'", year, endMonth))
+
+		}
+	}
+	sb.WriteString(" order by date ")
+	return ts.getTransactions(ctx, pg, sb.String())
 }
 
 // GetTransactions will return the TransactionSet based on the selectStatement passed in.

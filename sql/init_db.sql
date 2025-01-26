@@ -85,3 +85,20 @@ CREATE TABLE IF NOT EXISTS dividends (
     record_date TIMESTAMP,
     PRIMARY KEY(ticker,declaration_date)
 );
+
+CREATE TABLE IF NOT EXISTS lookups (
+    security VARCHAR(255),
+    symbol VARCHAR(25),
+    PRIMARY KEY(security)
+);
+
+CREATE TABLE IF NOT EXISTS dividend_history (
+    symbol VARCHAR(25),
+    year NUMERIC,
+    month NUMERIC,
+    amount NUMERIC,
+    PRIMARY KEY(symbol,year,month)
+);
+
+-- CREATE INDEX IF NOT EXISTS ON dividend_history  USING (year,month);
+-- CREATE INDEX IF NOT EXISTS year_mo_index ON dividend_history(year,month);

@@ -3,8 +3,11 @@ package model_test
 import (
 	"context"
 	_ "embed"
+	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5/pgxpool"
 	couch_database "github.com/kpearce2430/keputils/couch-database"
+	"github.com/kpearce2430/keputils/utils"
 	"github.com/kpearce2430/stock-tools/postgres"
 	"github.com/sirupsen/logrus"
 	"log"
@@ -45,6 +48,9 @@ var (
 
 	//go:embed testdata/dividends.json
 	testDividendsData []byte
+
+	//go:embed testdata/trans_2023_1.csv
+	testTrans20231 []byte
 )
 
 const (
@@ -53,6 +59,36 @@ const (
 	historicalTable      = "historical"
 	stockCache           = "cache"
 )
+
+func truncateTransactions(pgxConn *pgxpool.Pool) error {
+	countSql := fmt.Sprintf("SELECT COUNT(*) FROM %s;", transactionTable)
+	var count int
+	if err := pgxConn.QueryRow(context.Background(), countSql).Scan(&count); err != nil {
+		return err
+	}
+	logrus.Info("Found ", count, " Rows")
+	if count == 0 {
+		return nil
+	}
+
+	truncateSql := fmt.Sprintf("TRUNCATE %s;", transactionTable)
+	if _, err := pgxConn.Exec(context.Background(), truncateSql); err != nil {
+		return err
+	}
+	return nil
+}
+
+func connectToPostgres() (*pgxpool.Pool, error) {
+	pgxConn, err := pgxpool.New(context.Background(), utils.GetEnv("PG_DATABASE_URL", "postgres://postgres:postgres@localhost:5432/postgres"))
+	if err != nil {
+		return nil, err
+	}
+
+	if pgxConn == nil {
+		return nil, errors.New("nil connection")
+	}
+	return pgxConn, nil
+}
 
 func TestMain(m *testing.M) {
 

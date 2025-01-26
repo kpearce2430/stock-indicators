@@ -25,6 +25,7 @@ x.sh
 .idea
 # *.csv
 tmp/
+bin/
 testdata/*
 
 *.xlsx

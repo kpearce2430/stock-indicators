@@ -3,16 +3,13 @@ package app_test
 import (
 	"bytes"
 	_ "embed"
-	"encoding/json"
 	"github.com/gin-gonic/gin"
-	"github.com/kpearce2430/stock-tools/model"
-	"github.com/stretchr/testify/assert"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
+/*
 func TestLoadLookups(t *testing.T) {
 	//
 	// Switch to test mode so you don'hist_usaix.csv get such noisy output
@@ -114,4 +111,13 @@ func TestLoadLookups(t *testing.T) {
 			assert.Equal(t, tc.StatusCode, w.Code)
 		})
 	}
+}
+
+*/
+
+func TestApp_LoadLookupsToPostgres(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest("POST", "/", bytes.NewBuffer(csvLookupData))
+	testApp.LoadLookupsToPostgres(c)
 }

@@ -13,18 +13,21 @@ import (
 var BuyTransactions = []string{
 	"Buy", "Buy Bonds", "Add Shares", "Reinvest Dividend", "Reinvest Long-term Capital Gain", "Reinvest Short-term Capital Gain", "xxx"}
 
+// Account is the intermediary structure that holds a set of Entity values in the Entities list for an account.
 type Account struct {
 	Name     string    `json:"name,omitempty"`
 	Entities []*Entity `json:"entities,omitempty"`
 	Pending  []*Entity `json:"pending,omitempty"`
 }
 
+// NewAccount creates a new Account and setting the name.
 func NewAccount(name string) *Account {
 	return &Account{
 		Name: name,
 	}
 }
 
+// AddEntity add an Entity to the account as a transaction.
 func (a *Account) AddEntity(e *Entity) {
 	switch {
 	case e.Type == "Sell" || e.Type == "Short Sell":
@@ -56,7 +59,7 @@ func (a *Account) AddEntity(e *Entity) {
 
 // SellBonds will remove all shares from an account.
 func (a *Account) SellBonds(e *Entity) {
-	logrus.Info("Selling Bonds:", e.Symbol)
+	logrus.Debug("Selling Bonds:", e.Symbol)
 	for _, entry := range a.Entities {
 		if entry.Type == "Buy Bonds" {
 			numShares := entry.Shares
@@ -67,6 +70,7 @@ func (a *Account) SellBonds(e *Entity) {
 	}
 }
 
+// RemoveShares will remove the Entity shares from the account.
 func (a *Account) RemoveShares(e *Entity) {
 	sharesToSell := math.Abs(e.Shares)
 	for _, entry := range a.Entities {
@@ -83,6 +87,7 @@ func (a *Account) RemoveShares(e *Entity) {
 	}
 }
 
+// SellShares will remove the Entity shares from the account from a sell.
 func (a *Account) SellShares(e *Entity) {
 	sharesToSell := math.Abs(e.Shares)
 	numberOfShares := a.NumberOfShares()
@@ -105,6 +110,7 @@ func (a *Account) SellShares(e *Entity) {
 	}
 }
 
+// SplitShares will execute a split on the shares for the Entities in the account.
 func (a *Account) SplitShares(e *Entity) {
 	parts := strings.Split(e.Description, " ")
 	newShares, err := utils.FloatParse(parts[0])
@@ -122,6 +128,7 @@ func (a *Account) SplitShares(e *Entity) {
 	}
 }
 
+// NumberOfShares returns the total shares of the Entities in the account.
 func (a *Account) NumberOfShares() float64 {
 	total := 0.00
 	for _, e := range a.Entities {
@@ -130,6 +137,7 @@ func (a *Account) NumberOfShares() float64 {
 	return total
 }
 
+// NumberOfPending returns the sum of the RemainingShares of the Pending entities in the account.
 func (a *Account) NumberOfPending() float64 {
 	total := 0.00
 	for _, e := range a.Pending {
@@ -138,6 +146,7 @@ func (a *Account) NumberOfPending() float64 {
 	return total
 }
 
+// Dividends returns the sum of the dividends of the Entities in the account.
 func (a *Account) Dividends() float64 {
 	amt := 0.00
 	for _, e := range a.Entities {
@@ -146,6 +155,7 @@ func (a *Account) Dividends() float64 {
 	return amt
 }
 
+// DividendsPaid returns the sum of the dividends paid of the Entities in the account.
 func (a *Account) DividendsPaid() float64 {
 	amt := 0.00
 	for _, e := range a.Entities {
@@ -154,6 +164,7 @@ func (a *Account) DividendsPaid() float64 {
 	return amt
 }
 
+// InterestIncome returns the sum of the interest paid of the Entities in the account.
 func (a *Account) InterestIncome() float64 {
 	amt := 0.00
 	for _, e := range a.Entities {
@@ -162,6 +173,7 @@ func (a *Account) InterestIncome() float64 {
 	return amt
 }
 
+// NetCost returns the sum of the costs of the Entities in the account
 func (a *Account) NetCost() float64 {
 	amt := 0.00
 	for _, e := range a.Entities {
@@ -170,13 +182,13 @@ func (a *Account) NetCost() float64 {
 	return amt
 }
 
+// FirstBought returns the data of the oldest Entity in the account.
 func (a *Account) FirstBought() time.Time {
 	theDate := time.Now()
 	for _, e := range a.Entities {
 		if utils.Contains(BuyTransactions, string(e.Type)) {
 			if e.RemainingShares > 0.1 {
 				if theDate.Unix() > e.Date.Unix() {
-					// logrus.Info(">", e)
 					theDate = e.Date
 				}
 			}
@@ -185,10 +197,12 @@ func (a *Account) FirstBought() time.Time {
 	return theDate
 }
 
+// AverageCost returns the average (NetCost / NumberOfShares) cost of the entities in the account.
 func (a *Account) AverageCost() float64 {
 	return a.NetCost() / a.NumberOfShares()
 }
 
+// String returns the string representation of the Account and it's Entity's
 func (a *Account) String() string {
 	bytes, err := json.Marshal(a)
 	if err != nil {

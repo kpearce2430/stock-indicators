@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// Ticker is the top level storing the Accounts processing Entity records as they are added through AddEntity.
 type Ticker struct {
 	Symbol          string              `json:"symbol,omitempty"`
 	SymbolType      string              `json:"symbolType,omitempty"`
@@ -49,6 +50,7 @@ func (s *TickerSet) GetTicker(symbol string) (*Ticker, bool) {
 	return ticker, ok
 }
 
+// TickerDatabase is the CouchDB record for a Ticker.
 type TickerDatabase struct {
 	Id     string  `json:"_id"`
 	Rev    string  `json:"_rev,omitempty"`
@@ -56,6 +58,7 @@ type TickerDatabase struct {
 	Key    string  `json:"key"`
 }
 
+// NewTicker creates a new Ticker
 func NewTicker(symbol string) *Ticker {
 	return &Ticker{
 		Symbol:   symbol,
@@ -233,4 +236,13 @@ func (t *Ticker) AveragePrice() float64 {
 		return 0.00
 	}
 	return t.NetCost() / t.NumberOfShares()
+}
+
+func (t *Ticker) GetAccount(name string) *Account {
+	acct, ok := t.Accounts[name]
+	if !ok {
+		logrus.Error("Account not found")
+		return nil
+	}
+	return acct
 }

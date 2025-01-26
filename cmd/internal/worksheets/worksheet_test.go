@@ -39,7 +39,11 @@ var transactions20240210 []byte
 //go:embed testdata/pv-2024-02-10.csv
 var portfolioValue20240210 string
 
-// var lookups *model.LookUpSet
+//go:embed testdata/dividends_aapl.json
+var dividendsAAPL []byte
+
+//go:embed testdata/dividends_csx.json
+var dividendsCSX []byte
 
 const (
 	stockCacheDBName      = "indicators"
@@ -48,6 +52,20 @@ const (
 )
 
 var testApp *app.App
+
+func loadDividends(pgxConn *pgxpool.Pool) {
+	divAAPL, err := model.NewDividendsSetFromJSON(dividendsAAPL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	divAAPL.ToDB(context.Background(), pgxConn, "dividends")
+
+	divCSX, err := model.NewDividendsSetFromJSON(dividendsCSX)
+	if err != nil {
+		log.Fatal(err)
+	}
+	divCSX.ToDB(context.Background(), pgxConn, "dividends")
+}
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
@@ -108,7 +126,6 @@ func TestMain(m *testing.M) {
 	if err := testSet.LoadWithLookups(lookups, transactions20240210); err != nil {
 		log.Fatal(err)
 	}
-
 	for _, tr := range testSet.TransactionRows {
 		if err := tr.TransactionToDB(context.Background(), pgxConn, transactionTable); err != nil {
 			log.Fatal(err)
@@ -142,6 +159,8 @@ func TestMain(m *testing.M) {
 			log.Fatal("unable to create dividend cache couch db")
 		}
 	}
+
+	loadDividends(pgxConn)
 
 	logrus.Info("Starting tests: ", count, " transactions loaded")
 	m.Run()

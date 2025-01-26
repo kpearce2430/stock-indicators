@@ -15,7 +15,7 @@ const workSheetName = "Dividend Analysis"
 func TestWorkSheet_DividendAnalysis(t *testing.T) {
 	w := worksheets.NewWorkSheet(excelize.NewFile(), testApp.PGXConn)
 	w.Lookups = model.LoadLookupSet("1", string(lookups2))
-	w.DividendCache = testApp.DividendCache
+	// w.DividendCache = testApp.DividendCache
 	w.StockCache = testApp.StockCache
 
 	start := business_days.GetBusinessDay(time.Date(2023, 12, 31, 00, 00, 00, 00, time.UTC))
@@ -39,7 +39,7 @@ func TestWorksheet_YearOverYearDividend(t *testing.T) {
 	t.Skip("skipped")
 	w := worksheets.NewWorkSheet(excelize.NewFile(), testApp.PGXConn)
 	w.Lookups = model.LoadLookupSet("1", string(lookups2))
-	w.DividendCache = testApp.DividendCache
+	// w.DividendCache = testApp.DividendCache
 	w.StockCache = testApp.StockCache
 	if err := w.YearOverYearDividend(workSheetName, "TEST", 57, 2024, 6); err != nil {
 		t.Error(err.Error())
@@ -55,4 +55,5 @@ func TestWorksheet_YearOverYearDividend(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
+
 }
