@@ -3,15 +3,16 @@ package app
 import (
 	"context"
 	"encoding/json"
-	"github.com/gin-gonic/gin"
-	"github.com/kpearce2430/stock-tools/model"
-	polygonclient "github.com/kpearce2430/stock-tools/polygon-client"
-	"github.com/sirupsen/logrus"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+	massive_client "github.com/kpearce2430/stock-tools/massive-client"
+	"github.com/kpearce2430/stock-tools/model"
+	"github.com/sirupsen/logrus"
 )
 
 func (a *App) getDividends(symbol string) (model.DividendsSet, error) {
-	client := polygonclient.NewPolygonClient("")
+	client := massive_client.New()
 
 	set, err := client.GetDataSet(symbol)
 	if err != nil {

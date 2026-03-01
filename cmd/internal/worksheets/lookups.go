@@ -2,55 +2,47 @@ package worksheets
 
 import (
 	"fmt"
+	"github.com/kpearce2430/stock-tools/stocksheet/column_info"
 )
 
-//func writeCell(f *excelize.File, sheetName string, col, row int, value any) error {
-//	colName, err := excelize.ColumnNumberToName(col)
-//	if err != nil {
-//		return err
-//	}
-//	colRow := fmt.Sprintf("%s%d", colName, row)
-//	f.SetCellValue(sheetName, colRow, value)
-//	return nil
-//}
-
+// LookupSheet creates the LookupSheet
 func (w *WorkSheet) LookupSheet(worksheetName string) error {
-	_, err := w.File.NewSheet(worksheetName)
+	_, err := w.StockFile.NewSheet(worksheetName)
 	if err != nil {
 		fmt.Println("Error:", err.Error())
 		return err
 	}
 
-	colInfoName, err := NewColumnInfo(w.File, "Name", worksheetName, 1)
+	colInfoName, err := column_info.New(w.StockFile.GetFile(), "Name", worksheetName, 1)
 	if err != nil {
 		return err
 	}
-	colInfoValue, err := NewColumnInfo(w.File, "Value", worksheetName, 2)
+	colInfoValue, err := column_info.New(w.StockFile.GetFile(), "Value", worksheetName, 2)
 	if err != nil {
 		return err
 	}
 
-	if err := colInfoName.WriteHeader(1, w.styles.Header); err != nil {
+	if err = colInfoName.WriteHeader(1, w.StockFile.Styles.Header); err != nil {
 		return err
 	}
-	if err := colInfoValue.WriteHeader(1, w.styles.Header); err != nil {
+	if err = colInfoValue.WriteHeader(1, w.StockFile.Styles.Header); err != nil {
 		return err
 	}
 	i := 2
 	for k, v := range w.Lookups.LookUps {
-		if err := colInfoName.WriteCell(i, k, w.styles.TextStyle(i)); err != nil {
+		if err = colInfoName.WriteCell(i, k, w.StockFile.Styles.TextStyle(i)); err != nil {
 			return err
 		}
-		if err := colInfoValue.WriteCell(i, v, w.styles.TextStyle(i)); err != nil {
+		if err = colInfoValue.WriteCell(i, v, w.StockFile.Styles.TextStyle(i)); err != nil {
 			return err
 		}
 		i++
 	}
 
-	if err := colInfoName.SetColumnSize(); err != nil {
+	if err = colInfoName.SetColumnSize(); err != nil {
 		return err
 	}
-	if err := colInfoValue.SetColumnSize(); err != nil {
+	if err = colInfoValue.SetColumnSize(); err != nil {
 		return err
 	}
 	return nil

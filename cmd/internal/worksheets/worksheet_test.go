@@ -4,6 +4,11 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"log"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	business_days "github.com/kpearce2430/keputils/business-days"
 	couchdatabase "github.com/kpearce2430/keputils/couch-database"
@@ -12,10 +17,6 @@ import (
 	"github.com/kpearce2430/stock-tools/model"
 	"github.com/kpearce2430/stock-tools/postgres"
 	"github.com/sirupsen/logrus"
-	"log"
-	"os"
-	"testing"
-	"time"
 )
 
 //go:embed testdata/short-trans.csv
@@ -101,6 +102,14 @@ func TestMain(m *testing.M) {
 	_ = os.Setenv("PV_COUCHDB_DATABASE", portfolioDatabaseName)
 	_ = os.Setenv("CACHE_COUCH_DATABASE", stockCacheDBName)
 
+	// Note since I'm not reading or writing to the database via the cache, The model isn't relevant.
+	for _, db := range []string{"dividends", portfolioDatabaseName, stockCacheDBName, stockcache, fundHistory, "cache"} {
+		databaseStore := couchdatabase.New[model.PortfolioValueDatabaseRecord](db, url, "admin", "password")
+		if databaseStore.DatabaseCreate() != true {
+			logrus.Fatal("Error creating a database")
+		}
+	}
+
 	// Set up the postgres environment
 	pgIP, err := postgresDBServer.Host(ctx)
 	if err != nil {
@@ -135,7 +144,11 @@ func TestMain(m *testing.M) {
 	julDate := utils.JulDateFromTime(business_days.GetBusinessDay(time.Date(2024, 02, 10, 00, 00, 00, 00, time.UTC)))
 	logrus.Info("julDate:", julDate)
 	// Load Portfolio Value
-	if err := model.LoadPortfolioValues(pgxConn, portfolioDatabaseName, portfolioValue20240210, julDate, lookups); err != nil {
+	if err = model.LoadPortfolioValues(pgxConn, portfolioDatabaseName, portfolioValue20240210, julDate, lookups); err != nil {
+		log.Fatal(err.Error())
+	}
+
+	if _, err = model.PortfolioValuesLoadDB(pgxConn, portfolioDatabaseName, portfolioValue20240210, julDate, lookups); err != nil {
 		log.Fatal(err.Error())
 	}
 
@@ -146,6 +159,7 @@ func TestMain(m *testing.M) {
 	}
 
 	testApp = app.NewApp("8888")
+
 	_, err = testApp.DividendCache.DatabaseExists()
 	if err != nil {
 		if testApp.DividendCache.DatabaseCreate() == false {

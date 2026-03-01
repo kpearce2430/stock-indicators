@@ -4,19 +4,20 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
-	couch_database "github.com/kpearce2430/keputils/couch-database"
-	"github.com/kpearce2430/keputils/utils"
-	"github.com/kpearce2430/stock-tools/cmd/internal/app"
-	"github.com/kpearce2430/stock-tools/model"
-	polygonclient "github.com/kpearce2430/stock-tools/polygon-client"
-	"github.com/kpearce2430/stock-tools/postgres"
-	"github.com/kpearce2430/stock-tools/stock_cache"
-	"github.com/polygon-io/client-go/rest/models"
-	"github.com/sirupsen/logrus"
 	"log"
 	"os"
 	"testing"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	couchdatabase "github.com/kpearce2430/keputils/couch-database"
+	"github.com/kpearce2430/keputils/utils"
+	"github.com/kpearce2430/stock-tools/cmd/internal/app"
+	massiveclient "github.com/kpearce2430/stock-tools/massive-client"
+	"github.com/kpearce2430/stock-tools/model"
+	"github.com/kpearce2430/stock-tools/postgres"
+	"github.com/kpearce2430/stock-tools/stock_cache"
+	"github.com/massive-com/client-go/v2/rest/models"
+	"github.com/sirupsen/logrus"
 )
 
 //go:embed testdata/lookups.csv
@@ -51,13 +52,13 @@ func createTestApp() (*app.App, error) {
 		return nil, err
 	}
 
-	divConfig := couch_database.DatabaseConfig{
+	divConfig := couchdatabase.DatabaseConfig{
 		DatabaseName: utils.GetEnv("DIV_COUCHDB_DATABASE", "dividends"),
 		CouchDBUrl:   utils.GetEnv("COUCHDB_URL", "http://localhost:5984"),
 		Username:     utils.GetEnv("COUCHDB_USERNAME", "admin"),
 		Password:     utils.GetEnv("COUCHDB_PASSWORD", "password"),
 	}
-	a.DividendCache, err = stock_cache.NewCache[models.Dividend](&divConfig, polygonclient.NewPolygonClient(""))
+	a.DividendCache, err = stock_cache.NewCache[models.Dividend](&divConfig, massiveclient.New())
 	if err != nil {
 		logrus.Error(err.Error())
 		return nil, err
@@ -69,13 +70,13 @@ func createTestApp() (*app.App, error) {
 		}
 	}
 
-	cdbConfig := couch_database.DatabaseConfig{
+	cdbConfig := couchdatabase.DatabaseConfig{
 		DatabaseName: utils.GetEnv("CACHE_COUCHDB_DATABASE", "cache"),
 		CouchDBUrl:   utils.GetEnv("COUCHDB_URL", "http://localhost:5984"),
 		Username:     utils.GetEnv("COUCHDB_USERNAME", "admin"),
 		Password:     utils.GetEnv("COUCHDB_PASSWORD", "password"),
 	}
-	a.StockCache, err = stock_cache.NewCache[models.GetDailyOpenCloseAggResponse](&cdbConfig, polygonclient.NewPolygonClient(""))
+	a.StockCache, err = stock_cache.NewCache[models.GetDailyOpenCloseAggResponse](&cdbConfig, massiveclient.New())
 	if err != nil {
 		logrus.Error(err.Error())
 		return nil, err
@@ -95,7 +96,7 @@ var testApp *app.App
 // TestMain
 func TestMain(m *testing.M) {
 	ctx := context.Background()
-	couchDBServer, _ := couch_database.CreateCouchDBServer(ctx)
+	couchDBServer, _ := couchdatabase.CreateCouchDBServer(ctx)
 	defer func() {
 		_ = couchDBServer.Terminate(ctx)
 	}()
@@ -124,6 +125,14 @@ func TestMain(m *testing.M) {
 	_ = os.Setenv("COUCHDB_PASSWORD", "password")
 	_ = os.Setenv("COUCHDB_DATABASE", "pv")
 
+	// Note since I'm not reading or writing to the database via the cache, The model isn't relevant.
+	for _, db := range []string{"dividends", app.PortfolioValueDB, "cache", "something"} {
+		databaseStore := couchdatabase.New[model.PortfolioValueDatabaseRecord](db, url, "admin", "password")
+		if databaseStore.DatabaseCreate() != true {
+			logrus.Fatal("Error creating a database")
+		}
+	}
+
 	pgIP, err := postgresDBServer.Host(ctx)
 	if err != nil {
 		log.Fatal(err)
@@ -143,7 +152,7 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
-	logrus.Debug("Starting tests")
+	logrus.Info("Starting tests")
 	m.Run()
 }
 
@@ -152,8 +161,7 @@ func TestNewApp(t *testing.T) {
 	status, err := testApp.PostgresCheck()
 	switch {
 	case err != nil:
-		t.Log(err.Error())
-		t.FailNow()
+		t.Fatal(err.Error())
 		return
 	case status == false:
 		t.Log("Postgres:", status)
@@ -163,7 +171,6 @@ func TestNewApp(t *testing.T) {
 
 	status = testApp.CouchDBCheck()
 	if status != true {
-		t.Log("CouchDB:", status)
-		t.FailNow()
+		t.Fatal("CouchDB:", status)
 	}
 }

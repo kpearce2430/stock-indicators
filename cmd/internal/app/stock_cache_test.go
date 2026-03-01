@@ -2,13 +2,12 @@ package app_test
 
 import (
 	"bytes"
-	"github.com/gin-gonic/gin"
-	"github.com/kpearce2430/keputils/utils"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 )
 
 type cacheTests struct {
@@ -19,12 +18,6 @@ type cacheTests struct {
 }
 
 func TestApp_GetStockCache(t *testing.T) {
-	key := "None"
-	utils.GetEnv("POLYGON_API", key)
-	if strings.Compare(key, "None") == 0 {
-		t.Skip("No POLYGON_API key")
-		return
-	}
 	t.Parallel()
 	testCases := []cacheTests{
 		{
@@ -37,13 +30,19 @@ func TestApp_GetStockCache(t *testing.T) {
 			Name:   "Saturday Jan 20, 2024",
 			Symbol: "HD",
 			Date:   "2024020",
-			Expect: http.StatusInternalServerError,
+			Expect: http.StatusOK,
 		},
 		{
 			Name:   "Saturday Jan 2, 2023",
 			Symbol: "HD",
 			Date:   "2023002",
-			Expect: http.StatusInternalServerError,
+			Expect: http.StatusOK,
+		},
+		{
+			Name:   "Today",
+			Symbol: "HD",
+			Date:   "2026056",
+			Expect: http.StatusOK,
 		},
 	}
 

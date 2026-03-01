@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	"github.com/kpearce2430/stock-tools/model"
+	"github.com/kpearce2430/stock-tools/stocksheet/column_info"
 	"github.com/sirupsen/logrus"
 	"time"
 )
 
 func (w *WorkSheet) AccountDividends(worksheetName string, start time.Time, monthsAgo int) error {
-	_, err := w.File.NewSheet(worksheetName)
+	sheet, err := w.StockFile.NewSheet(worksheetName)
 	if err != nil {
 		logrus.Error("Error:", err.Error())
 		return err
@@ -27,49 +28,52 @@ func (w *WorkSheet) AccountDividends(worksheetName string, start time.Time, mont
 		return err
 	}
 
-	var allColumns []*ColumnInfo
-	colInfoSymbol, err := NewColumnInfo(w.File, "Date", worksheetName, 1)
+	colInfoSymbol, err := column_info.New(w.StockFile.GetFile(), "Date", worksheetName, 1)
 	if err != nil {
 		logrus.Error("Error:", err.Error())
 		return err
 	}
-	allColumns = append(allColumns, colInfoSymbol)
-	col := 2
+	sheet.AddColumn(colInfoSymbol)
 
+	col := 2
 	for _, account := range accounts {
 		if account[0] == 'z' {
 			continue
 		}
-		colInfoSymbol, err = NewColumnInfo(w.File, account, worksheetName, col)
+		ci, err := column_info.New(w.StockFile.GetFile(), account, worksheetName, col)
 		if err != nil {
 			logrus.Error("Error:", err.Error())
 			return err
 		}
-		allColumns = append(allColumns, colInfoSymbol)
+		sheet.AddColumn(ci)
 		col++
 	}
 
-	totalColumn, err := NewColumnInfo(w.File, "Total", worksheetName, col)
+	totalColumn, err := column_info.New(w.StockFile.GetFile(), "Total", worksheetName, col)
 	if err != nil {
 		logrus.Error("Error:", err.Error())
 		return err
 	}
 	totalColumn.SetFormula(true)
-	allColumns = append(allColumns, totalColumn)
+	sheet.AddColumn(totalColumn)
 
 	row := 1
-	for _, colInfo := range allColumns {
-		_ = colInfo.WriteHeader(row, w.styles.Header)
-		colInfo.SetSize(12.0)
+	for _, ci := range sheet.Columns {
+		_ = ci.WriteHeader(row, w.StockFile.Styles.Header)
+		ci.SetSize(12.0)
 	}
 
 	row++
 	month := int(start.Month())
 	year := start.Year()
 	col = 1
-	colInfo := allColumns[0]
-	for i := 0; i < monthsAgo; i++ {
-
+	colInfo, ok := sheet.GetColumn(0)
+	if !ok || colInfo == nil {
+		logrus.Fatal("Unable to Get Column 0")
+		return err
+	}
+	for range monthsAgo {
+		//
 		monthString := time.Month(month).String()
 		monthString = monthString[0:3]
 
@@ -86,20 +90,22 @@ func (w *WorkSheet) AccountDividends(worksheetName string, start time.Time, mont
 		}
 
 		j := 0
-		for j, colInfo = range allColumns {
+		for j, colInfo = range sheet.Columns {
 			switch j {
 			case 0:
 				if monthString == "Jan" || monthString == "Dec" {
 					dateStr := fmt.Sprintf("%s/%02d", monthString, year)
-					_ = colInfo.WriteCell(row, dateStr, w.styles.TextStyle(row))
+					_ = colInfo.WriteCell(row, dateStr, w.StockFile.Styles.TextStyle(row))
 				} else {
-					_ = colInfo.WriteCell(row, monthString, w.styles.TextStyle(row))
+					_ = colInfo.WriteCell(row, monthString, w.StockFile.Styles.TextStyle(row))
 				}
-			case len(allColumns) - 1:
-				startCol := allColumns[1].ColumnID
-				endCol := allColumns[len(allColumns)-2].ColumnID
+			case len(sheet.Columns) - 1:
+				ci, _ := sheet.GetColumn(1)
+				startCol := ci.ColumnID
+				ci, _ = sheet.GetColumn(len(sheet.Columns) - 2)
+				endCol := ci.ColumnID
 				formula := fmt.Sprintf("=sum(%s%d:%s%d)", startCol, row, endCol, row)
-				_ = colInfo.WriteCell(row, formula, w.styles.CurrencyStyle(row))
+				_ = colInfo.WriteCell(row, formula, w.StockFile.Styles.CurrencyStyle(row))
 
 			default:
 				var paid float64
@@ -112,11 +118,7 @@ func (w *WorkSheet) AccountDividends(worksheetName string, start time.Time, mont
 						}
 					}
 				}
-				//if paid > 0 {
-				//	logrus.Println(colInfo.Name, ": ", monthString, "/", year, " = ", paid)
-				//}
-				_ = colInfo.WriteCell(row, paid, w.styles.CurrencyStyle(row))
-
+				_ = colInfo.WriteCell(row, paid, w.StockFile.Styles.CurrencyStyle(row))
 			}
 		}
 		month--
@@ -127,7 +129,7 @@ func (w *WorkSheet) AccountDividends(worksheetName string, start time.Time, mont
 		row++
 	}
 
-	for _, colInfo = range allColumns {
+	for _, colInfo = range sheet.Columns {
 		_ = colInfo.SetColumnSize()
 	}
 

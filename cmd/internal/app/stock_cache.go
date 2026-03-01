@@ -1,10 +1,11 @@
 package app
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/polygon-io/client-go/rest/models"
-	"github.com/sirupsen/logrus"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/massive-com/client-go/v2/rest/models"
+	"github.com/sirupsen/logrus"
 )
 
 func (a *App) GetStockCache(c *gin.Context) {

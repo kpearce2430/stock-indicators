@@ -2,21 +2,21 @@ package worksheets_test
 
 import (
 	"context"
+	"time"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	business_days "github.com/kpearce2430/keputils/business-days"
 	couch_database "github.com/kpearce2430/keputils/couch-database"
 	"github.com/kpearce2430/keputils/utils"
-	polygonclient "github.com/kpearce2430/stock-tools/polygon-client"
+	massive_client "github.com/kpearce2430/stock-tools/massive-client"
 	"github.com/kpearce2430/stock-tools/stock_cache"
-	"github.com/polygon-io/client-go/rest/models"
-	"strings"
-	"time"
+	"github.com/massive-com/client-go/v2/rest/models"
+
+	"testing"
 
 	// "github.com/kpearce2430/stock-tools/cmd/internal/app"
 	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets"
 	"github.com/kpearce2430/stock-tools/model"
-	"github.com/xuri/excelize/v2"
-	"testing"
 )
 
 const (
@@ -26,19 +26,13 @@ const (
 )
 
 func TestWorkSheet_SymbolsDetails(t *testing.T) {
-	key := "None"
-	utils.GetEnv("POLYGON_API", key)
-	if strings.Compare(key, "None") == 0 {
-		t.Skip("No POLYGON_API key")
-		return
-	}
 	pgxConn, err := pgxpool.New(context.Background(), utils.GetEnv("PG_DATABASE_URL", "postgres://postgres:postgres@localhost:5432/postgres"))
 	if err != nil {
 		t.Fatal(err.Error())
 		return
 	}
 
-	w := worksheets.NewWorkSheet(excelize.NewFile(), pgxConn)
+	w := worksheets.New(pgxConn)
 	w.Lookups = model.LoadLookupSet("1", string(lookups2))
 	quoteConfig := couch_database.DatabaseConfig{
 		DatabaseName: utils.GetEnv("CACHE_COUCHDB_DATABASE", stockcache),
@@ -47,7 +41,7 @@ func TestWorkSheet_SymbolsDetails(t *testing.T) {
 		Password:     utils.GetEnv("COUCHDB_PASSWORD", "password"),
 	}
 
-	w.StockCache, err = stock_cache.NewCache[models.GetDailyOpenCloseAggResponse](&quoteConfig, polygonclient.NewPolygonClient(""))
+	w.StockCache, err = stock_cache.NewCache[models.GetDailyOpenCloseAggResponse](&quoteConfig, massive_client.New())
 	if !w.StockCache.CouchDBUp() {
 		t.Fatal("couchdb not up")
 		return
@@ -63,25 +57,23 @@ func TestWorkSheet_SymbolsDetails(t *testing.T) {
 
 	_, err = w.StockCache.DatabaseExists()
 	if err != nil {
-		// if w.DividendCache.DatabaseCreate() == false {
 		t.Fatal("unable to create cache database")
-		// }
 	}
 
 	start := business_days.GetBusinessDay(time.Date(2023, 12, 31, 00, 00, 00, 00, time.UTC))
 
-	if err := w.SymbolsDetails("TickerInfo", "HD", fundHistory, start, 24); err != nil {
-		t.Fatal(err.Error())
+	if err = w.SymbolsDetails("TickerInfo", "HD", fundHistory, start, 24); err != nil {
+		t.Error(err)
 		return
 	}
 
-	if err := w.File.DeleteSheet("Sheet1"); err != nil {
+	if err = w.StockFile.DeleteSheet("Sheet1"); err != nil {
 		t.Log(err.Error())
 	}
 
-	if err := w.File.SaveAs(symbolDetailsWorkSheetFileName); err != nil {
-		t.Log(err)
-		t.Fail()
+	if err = w.StockFile.Save(symbolDetailsWorkSheetFileName); err != nil {
+		t.Error(err)
+		return
 	}
 	t.Log("completed: ", time.Now().Sub(start))
 }

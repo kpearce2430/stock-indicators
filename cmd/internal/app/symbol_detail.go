@@ -7,7 +7,6 @@ import (
 	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets"
 	"github.com/kpearce2430/stock-tools/model"
 	"github.com/sirupsen/logrus"
-	"github.com/xuri/excelize/v2"
 	"net/http"
 	"strings"
 	"time"
@@ -31,7 +30,7 @@ func (a *App) CreateSymbolDetailHandler(c *gin.Context) {
 
 	currDay := business_days.GetBusinessDay(time.Now())
 
-	ws := worksheets.NewWorkSheet(excelize.NewFile(), a.PGXConn)
+	ws := worksheets.New(a.PGXConn)
 	ws.Lookups = a.LookupSet
 	ws.StockCache = a.StockCache
 	// ws.DividendCache = a.DividendCache
@@ -44,11 +43,11 @@ func (a *App) CreateSymbolDetailHandler(c *gin.Context) {
 		}
 	}
 
-	if err := ws.File.DeleteSheet("Sheet1"); err != nil {
+	if err := ws.StockFile.DeleteSheet("Sheet1"); err != nil {
 		logrus.Error(err.Error())
 	}
 
-	buff, err := ws.File.WriteToBuffer()
+	buff, err := ws.StockFile.GetFile().WriteToBuffer()
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
 		return

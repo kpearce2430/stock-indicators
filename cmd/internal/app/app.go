@@ -2,18 +2,18 @@ package app
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	couch_database "github.com/kpearce2430/keputils/couch-database"
 	"github.com/kpearce2430/keputils/utils"
-	"github.com/kpearce2430/stock-tools/cmd/internal/handlers/indicators"
 	"github.com/kpearce2430/stock-tools/cmd/internal/handlers/symbollist"
+	massive_client "github.com/kpearce2430/stock-tools/massive-client"
 	"github.com/kpearce2430/stock-tools/model"
-	polygonclient "github.com/kpearce2430/stock-tools/polygon-client"
 	"github.com/kpearce2430/stock-tools/stock_cache"
-	"github.com/polygon-io/client-go/rest/models"
+	"github.com/massive-com/client-go/v2/rest/models"
 	"github.com/sirupsen/logrus"
-	"net/http"
 )
 
 type App struct {
@@ -62,21 +62,20 @@ func (a *App) routes() {
 	router.GET(allDividends, a.GetAllDividends)
 	router.POST(historicalLoadRoute, a.LoadHistoricalData)
 	// router.DELETE(historicalDeleteRoute, a.DeleteHistoricalData)
-	//router.POST(lookupsRoute, a.LoadLookups)
-	//router.GET(lookupsRoute, a.GetLookups)
+	// router.POST(lookupsRoute, a.LoadLookups)
+	// router.GET(lookupsRoute, a.GetLookups)
 	router.POST(lookupsDBRoute, a.LoadLookupsToPostgres)
 	router.GET(lookupsDBRoute, a.GetLookupsFromPostgres)
-	router.GET(macdRoute, indicators.GetMACDRouter)
 	router.POST(pvRoute, a.LoadPortfolioValueHandler)
 	router.POST(PortfolioLoadDBRoute, a.LoadDBPortfolioValueHandler)
 	router.GET(pvSymbolRoute, a.GetPortfolioValueHandler)
-	router.GET(rsiRoute, indicators.GetRsiRouter)
 	router.GET(statusRoute, a.Status)
 	router.GET(stockCacheRoute, a.GetStockCache)
 	router.GET(symbolListRoute, s.SymbolListGet)
 	router.POST(transactionRoute, a.LoadTransactionsHandler)
 	router.GET(tickerInfoRoute, s.TickerInfoGet)
 	router.GET(worksheetRoute, a.CreateWorksheetHandler)
+	router.GET("/dividends", a.CreateDividendsHandler)
 	router.GET(symbolDetail, a.CreateSymbolDetailHandler)
 	a.Srv.Handler = router
 }
@@ -104,7 +103,6 @@ func NewApp(port string) *App {
 		logrus.Fatal("Postgres not ready")
 	}
 
-	// lookupSet := utils.GetEnv("LOOKUPS_SET", "2")
 	a.LookupSet, err = a.getLookupsFromPostgres("lookups")
 	if err != nil {
 		logrus.Fatal("Error loading lookups:", err.Error())
@@ -116,7 +114,7 @@ func NewApp(port string) *App {
 		Username:     utils.GetEnv("COUCHDB_USERNAME", "admin"),
 		Password:     utils.GetEnv("COUCHDB_PASSWORD", "password"),
 	}
-	a.StockCache, err = stock_cache.NewCache[models.GetDailyOpenCloseAggResponse](&quoteConfig, polygonclient.NewPolygonClient(""))
+	a.StockCache, err = stock_cache.NewCache[models.GetDailyOpenCloseAggResponse](&quoteConfig, massive_client.New())
 	if err != nil {
 		logrus.Fatal("Error Creating Stock Cache:", err.Error())
 		return nil
@@ -128,7 +126,7 @@ func NewApp(port string) *App {
 		Username:     utils.GetEnv("COUCHDB_USERNAME", "admin"),
 		Password:     utils.GetEnv("COUCHDB_PASSWORD", "password"),
 	}
-	a.DividendCache, err = stock_cache.NewCache[models.Dividend](&divConfig, polygonclient.NewPolygonClient(""))
+	a.DividendCache, err = stock_cache.NewCache[models.Dividend](&divConfig, massive_client.New())
 	if err != nil {
 		logrus.Fatal("Error Creating Dividend Cache:", err.Error())
 	}

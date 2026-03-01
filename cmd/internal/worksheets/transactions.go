@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/kpearce2430/stock-tools/model"
+	"github.com/kpearce2430/stock-tools/stocksheet/column_info"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,11 +20,13 @@ const (
 	TransactionShares           = "Shares"
 	TransactionInvestmentAmount = "Investment Amount"
 	TransactionAmount           = "Amount"
+	TransactionYear             = "Year"
+	TransactionMonth            = "Month"
 )
 
 func (w *WorkSheet) Transactions(worksheetName, julDate string) error {
 	logrus.Debug(worksheetName, ":", julDate)
-	_, err := w.File.NewSheet(worksheetName)
+	sheet, err := w.StockFile.NewSheet(worksheetName)
 	if err != nil {
 		logrus.Error("Error:", err.Error())
 		return err
@@ -41,51 +44,64 @@ func (w *WorkSheet) Transactions(worksheetName, julDate string) error {
 	headers := []string{
 		TransactionID, TransactionDate, TransactionType, TransactionSecurity, TransactionSecurityPayee, TransactionSymbol,
 		TransactionAccount, TransactionDescription, TransactionShares, TransactionInvestmentAmount, TransactionAmount,
+		TransactionYear, TransactionMonth,
 	}
 
-	var allColumns []*ColumnInfo
+	// var allColumns []*ColumnInfo
 
 	i := 1
 	row := 1
+	dateCol := ""
 	for _, h := range headers {
-		colTransaction, err := NewColumnInfo(w.File, h, worksheetName, i)
+		colTransaction, err := column_info.New(w.StockFile.GetFile(), h, worksheetName, i)
 		if err != nil {
 			logrus.Error("Error:", err.Error())
 			return err
 		}
+		sheet.AddColumn(colTransaction)
 		i++
-		allColumns = append(allColumns, colTransaction)
-		_ = colTransaction.WriteHeader(row, w.styles.Header)
+		// allColumns = append(allColumns, colTransaction)
+		switch h {
+		case TransactionYear, TransactionMonth:
+			colTransaction.SetFormula(true)
+		case TransactionDate:
+			dateCol = colTransaction.ColumnID
+		}
+		_ = colTransaction.WriteHeader(row, w.StockFile.Styles.Header)
 	}
 
 	//
 	row++
 	for _, tr := range tSet.TransactionRows {
-		for _, col := range allColumns {
+		for _, col := range sheet.Columns {
 
 			switch col.Name {
 			case TransactionID:
-				_ = col.WriteCell(row, tr.Id, w.styles.NumberStyle(row))
+				_ = col.WriteCell(row, tr.Id, w.StockFile.Styles.NumberStyle(row))
 			case TransactionDate:
-				_ = col.WriteCell(row, tr.Date, w.styles.DateStyle(row))
+				_ = col.WriteCell(row, tr.Date, w.StockFile.Styles.DateStyle(row))
 			case TransactionType:
-				_ = col.WriteCell(row, tr.Type, w.styles.TextStyle(row))
+				_ = col.WriteCell(row, tr.Type, w.StockFile.Styles.TextStyle(row))
 			case TransactionSecurity:
-				_ = col.WriteCell(row, tr.Security, w.styles.TextStyle(row))
+				_ = col.WriteCell(row, tr.Security, w.StockFile.Styles.TextStyle(row))
 			case TransactionSecurityPayee:
-				_ = col.WriteCell(row, tr.SecurityPayee, w.styles.TextStyle(row))
+				_ = col.WriteCell(row, tr.SecurityPayee, w.StockFile.Styles.TextStyle(row))
 			case TransactionSymbol:
-				_ = col.WriteCell(row, tr.Symbol, w.styles.TextStyle(row))
+				_ = col.WriteCell(row, tr.Symbol, w.StockFile.Styles.TextStyle(row))
 			case TransactionAccount:
-				_ = col.WriteCell(row, tr.Account, w.styles.TextStyle(row))
+				_ = col.WriteCell(row, tr.Account, w.StockFile.Styles.TextStyle(row))
 			case TransactionDescription:
-				_ = col.WriteCell(row, tr.Description, w.styles.TextStyle(row))
+				_ = col.WriteCell(row, tr.Description, w.StockFile.Styles.TextStyle(row))
 			case TransactionShares:
-				_ = col.WriteCell(row, tr.Shares, w.styles.TextStyle(row))
+				_ = col.WriteCell(row, tr.Shares, w.StockFile.Styles.NumberStyle(row))
 			case TransactionInvestmentAmount:
-				_ = col.WriteCell(row, tr.InvestmentAmount, w.styles.TextStyle(row))
+				_ = col.WriteCell(row, tr.InvestmentAmount, w.StockFile.Styles.CurrencyStyle(row))
 			case TransactionAmount:
-				_ = col.WriteCell(row, tr.Amount, w.styles.TextStyle(row))
+				_ = col.WriteCell(row, tr.Amount, w.StockFile.Styles.CurrencyStyle(row))
+			case TransactionYear:
+				_ = col.WriteCell(row, fmt.Sprintf("=Year(%s%d)", dateCol, row), w.StockFile.Styles.TextStyle(row))
+			case TransactionMonth:
+				_ = col.WriteCell(row, fmt.Sprintf("=Month(%s%d)", dateCol, row), w.StockFile.Styles.TextStyle(row))
 			default:
 				return fmt.Errorf("bad type[%s]", col.Name)
 			}
