@@ -3,11 +3,12 @@ package stock_cache
 import (
 	"encoding/json"
 	"fmt"
+	"time"
+
 	business_days "github.com/kpearce2430/keputils/business-days"
 	couchdatabase "github.com/kpearce2430/keputils/couch-database"
 	"github.com/kpearce2430/keputils/utils"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 type CacheClient interface {
@@ -78,9 +79,9 @@ func (c *Cache[T]) GetCacheSet(ticker string, args ...string) (*T, error) {
 	switch len(args) {
 	case 0:
 		jDate := utils.JulDateFromTime(business_days.GetBusinessDay(time.Now()))
-		key = fmt.Sprintf("%s:%s", ticker, jDate)
+		key = fmt.Sprintf("%s:%s", jDate, ticker)
 	case 1:
-		key = fmt.Sprintf("%s:%s", ticker, args[0])
+		key = fmt.Sprintf("%s:%s", args[0], ticker)
 	default:
 		logrus.Error("Invalid arguments:", args)
 		return nil, fmt.Errorf("invalid arguments")
@@ -102,13 +103,16 @@ func (c *Cache[T]) GetCacheSet(ticker string, args ...string) (*T, error) {
 		return nil, err
 	}
 	var responses []T
-	if err := json.Unmarshal(resp, &responses); err != nil {
+	if err = json.Unmarshal(resp, &responses); err != nil {
 		return nil, err
 	}
 
 	if len(responses) > 0 {
 		for _, r := range responses {
-			newKey := fmt.Sprintf("%s:%s", utils.JulDate(), ticker)
+
+			businessTime := business_days.GetBusinessDay(time.Now())
+			newKey := fmt.Sprintf("%s:%s", utils.JulDateFromTime(businessTime), ticker)
+			// newKey := fmt.Sprintf("%s:%s", utils.JulDate(), ticker)
 			id, err := c.DocumentCreate(newKey, &r)
 			if err != nil {
 				return nil, err

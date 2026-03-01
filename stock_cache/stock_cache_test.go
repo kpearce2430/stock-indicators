@@ -3,18 +3,19 @@ package stock_cache_test
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"testing"
+	"time"
+
 	business_days "github.com/kpearce2430/keputils/business-days"
 	couchdatabase "github.com/kpearce2430/keputils/couch-database"
 	"github.com/kpearce2430/keputils/utils"
-	polygonclient "github.com/kpearce2430/stock-tools/polygon-client"
+	massive_client "github.com/kpearce2430/stock-tools/massive-client"
+	"github.com/kpearce2430/stock-tools/model"
 	"github.com/kpearce2430/stock-tools/stock_cache"
-	"github.com/polygon-io/client-go/rest/models"
+	"github.com/massive-com/client-go/v2/rest/models"
 	"github.com/sirupsen/logrus"
-	"log"
-	"os"
-	"strings"
-	"testing"
-	"time"
 )
 
 func TestMain(m *testing.M) {
@@ -48,6 +49,14 @@ func TestMain(m *testing.M) {
 		Password:     utils.GetEnv("COUCHDB_PASSWORD", "password"),
 	}
 	dataStore := couchdatabase.NewDataStore[models.GetDailyOpenCloseAggResponse](&dataConfig)
+
+	// Note since I'm not reading or writing to the database via the cache, The model isn't relevant.
+	for _, db := range []string{"dividends", "quotes", "cache", "something"} {
+		databaseStore := couchdatabase.New[model.PortfolioValueDatabaseRecord](db, url, "admin", "password")
+		if databaseStore.DatabaseCreate() != true {
+			logrus.Fatal("Error creating a database")
+		}
+	}
 	_, err = dataStore.DatabaseExists()
 	if err != nil {
 		if dataStore.DatabaseCreate() == false {
@@ -68,9 +77,7 @@ func TestNewCache(t *testing.T) {
 		Password:     utils.GetEnv("COUCHDB_PASSWORD", "password"),
 	}
 
-	client := polygonclient.NewPolygonClient("")
-
-	cache, err := stock_cache.NewCache[models.GetDailyOpenCloseAggResponse](&quoteConfig, client)
+	cache, err := stock_cache.NewCache[models.GetDailyOpenCloseAggResponse](&quoteConfig, massive_client.New())
 	if err != nil {
 		t.Log(err.Error())
 		t.FailNow()
@@ -85,13 +92,10 @@ func TestNewCache(t *testing.T) {
 }
 
 func TestCache_GetStockQuote(t *testing.T) {
-	key := "None"
-	utils.GetEnv("POLYGON_API", key)
-	if strings.Compare(key, "None") == 0 {
-		t.Skip("No POLYGON_API key")
-		return
-	}
-	tickers := []string{"HD", "CSX", "AAPL"}
+	tickers := []string{
+		"HD",
+		"CSX",
+		"AAPL"}
 
 	quoteConfig := couchdatabase.DatabaseConfig{
 		DatabaseName: utils.GetEnv("CACHE_COUCHDB_DATABASE", "quotes"),
@@ -99,8 +103,8 @@ func TestCache_GetStockQuote(t *testing.T) {
 		Username:     utils.GetEnv("COUCHDB_USERNAME", "admin"),
 		Password:     utils.GetEnv("COUCHDB_PASSWORD", "password"),
 	}
-	poly := polygonclient.NewPolygonClient("")
-	cache, err := stock_cache.NewCache[models.GetDailyOpenCloseAggResponse](&quoteConfig, poly)
+
+	cache, err := stock_cache.NewCache[models.GetDailyOpenCloseAggResponse](&quoteConfig, massive_client.New())
 	if err != nil {
 		t.Log(err.Error())
 		t.FailNow()
@@ -113,7 +117,6 @@ func TestCache_GetStockQuote(t *testing.T) {
 
 	for _, sym := range tickers {
 		t.Run(sym, func(t *testing.T) {
-
 			tm := time.Now()
 			tm = business_days.GetBusinessDay(tm)
 			doc, err := cache.GetCache(sym, utils.JulDateFromTime(tm))
@@ -154,8 +157,8 @@ func TestCache_GetPastStockQuote(t *testing.T) {
 		Username:     utils.GetEnv("COUCHDB_USERNAME", "admin"),
 		Password:     utils.GetEnv("COUCHDB_PASSWORD", "password"),
 	}
-	poly := polygonclient.NewPolygonClient("")
-	cache, err := stock_cache.NewCache[models.GetDailyOpenCloseAggResponse](&quoteConfig, poly)
+
+	cache, err := stock_cache.NewCache[models.GetDailyOpenCloseAggResponse](&quoteConfig, massive_client.New())
 	if err != nil {
 		t.Log(err.Error())
 		t.FailNow()
@@ -166,7 +169,7 @@ func TestCache_GetPastStockQuote(t *testing.T) {
 		t.FailNow()
 	}
 
-	tm := time.Date(2023, 12, 25, 00, 00, 00, 00, time.UTC)
+	tm := time.Date(2025, 12, 25, 00, 00, 00, 00, time.UTC)
 	jDate := utils.JulDateFromTime(business_days.GetBusinessDay(tm))
 
 	for _, sym := range tickers {
@@ -200,13 +203,7 @@ func TestCache_GetPastStockQuote(t *testing.T) {
 }
 
 func TestCache_GetStockDividends(t *testing.T) {
-	key := "None"
-	utils.GetEnv("POLYGON_API", key)
-	if strings.Compare(key, "None") == 0 {
-		t.Skip("No POLYGON_API key")
-		return
-	}
-
+	//
 	tickers := []string{"HD", "CSX", "AAPL"}
 
 	quoteConfig := couchdatabase.DatabaseConfig{
@@ -215,8 +212,8 @@ func TestCache_GetStockDividends(t *testing.T) {
 		Username:     utils.GetEnv("COUCHDB_USERNAME", "admin"),
 		Password:     utils.GetEnv("COUCHDB_PASSWORD", "password"),
 	}
-	poly := polygonclient.NewPolygonClient("")
-	cache, err := stock_cache.NewCache[models.Dividend](&quoteConfig, poly)
+
+	cache, err := stock_cache.NewCache[models.Dividend](&quoteConfig, massive_client.New())
 	if err != nil {
 		t.Log(err.Error())
 		t.FailNow()
@@ -245,7 +242,7 @@ func TestCache_GetStockDividends(t *testing.T) {
 
 			tm := business_days.GetBusinessDay(time.Now())
 			jDate := fmt.Sprintf("%d%03d", tm.Year(), tm.YearDay())
-			key := fmt.Sprintf("%s:%s", "HD", jDate)
+			key := fmt.Sprintf("%s:%s", jDate, sym)
 
 			doc, err = cache.DocumentGet(key)
 			if err != nil {
