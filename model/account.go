@@ -3,11 +3,12 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/kpearce2430/keputils/utils"
-	"github.com/sirupsen/logrus"
 	"math"
 	"strings"
 	"time"
+
+	"github.com/kpearce2430/keputils/utils"
+	"github.com/sirupsen/logrus"
 )
 
 var BuyTransactions = []string{
@@ -105,7 +106,7 @@ func (a *Account) SellShares(e *Entity) {
 		}
 	}
 	if sharesToSell > 0.02 {
-		logrus.Errorf("%.02f Shares of %s Remaining to Sell", sharesToSell, e.Symbol)
+		logrus.Debugf("%.02f Shares of %s Remaining to Sell", sharesToSell, e.Symbol)
 		a.Pending = append(a.Pending, e)
 	}
 }
@@ -208,5 +209,5 @@ func (a *Account) String() string {
 	if err != nil {
 		return fmt.Sprintf("%v", err.Error())
 	}
-	return fmt.Sprintf(string(bytes))
+	return string(bytes)
 }

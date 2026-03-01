@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kpearce2430/keputils/utils"
 	"github.com/sirupsen/logrus"
@@ -53,11 +54,22 @@ func SymbolList(ctx context.Context, pgxConn *pgxpool.Pool, lookups *LookUpSet) 
 	for rows.Next() {
 		var symbol, security string
 		err = rows.Scan(&symbol, &security)
+		if err != nil {
+			logrus.Error("Errors rows.scan()", err)
+			return symbolSet, err
+		}
 		if symbol == "" && security == "" {
 			continue
 		}
-		if err != nil {
-			return symbolSet, err
+
+		if symbol == "" {
+			value, ok := lookups.GetLookUpByName(security)
+			switch ok {
+			case true:
+				symbol = value
+			default:
+				logrus.Warning("No symbol for [", security, "]")
+			}
 		}
 
 		value, _ := lookups.GetLookUpByName(security)
@@ -66,6 +78,9 @@ func SymbolList(ctx context.Context, pgxConn *pgxpool.Pool, lookups *LookUpSet) 
 			continue
 			//case ok:
 			//	security = value
+		}
+		if symbol == "" {
+			logrus.Warning("Security [", security, "] missing SYMBOL")
 		}
 		symbolSet[symbol] = security
 
@@ -113,10 +128,39 @@ func AccountInfoGet(ctx context.Context, pgxConn *pgxpool.Pool, acctSymbol strin
 		ticker.AddEntity(ent)
 	}
 
+	if len(securityNames) == 0 {
+		logrus.Error("No security names found")
+		return nil, errors.New("no security names found")
+	}
+
 	acctInfo := AccountInfo{
 		Symbol:         acctSymbol,
 		Security:       securityNames[len(securityNames)-1], // last one found
 		NumberOfShares: ticker.NumberOfShares(),
+	}
+
+	var pvValue PortfolioValueRecord
+	err := pvValue.GetLastDB(pgxConn, ticker.Symbol, "portfolio_value")
+
+	if err != nil {
+		logrus.Error("Error Getting PV for ", ticker.Symbol, " Shares:", acctInfo.NumberOfShares, ":", err.Error())
+	}
+
+	acctInfo.SecurityType = pvValue.Type
+	acctInfo.LatestPrice = getLatestPrice(&pvValue)
+
+	if acctInfo.SecurityType == "" {
+		switch len(acctSymbol) {
+		case 1, 2, 3, 4:
+			logrus.Debug(acctSymbol, " Security Type is missing, assuming Stock")
+			acctInfo.SecurityType = "Stock"
+		case 5:
+			logrus.Debug(acctSymbol, " Security Type is missing, assuming Mutual Fund")
+			acctInfo.SecurityType = "Mutual Fund"
+		default:
+			logrus.Debug(acctSymbol, " Security Type is missing, assuming Bond")
+			acctInfo.SecurityType = "Bond"
+		}
 	}
 
 	if ticker.NumberOfShares() <= 0 {
@@ -136,14 +180,14 @@ func AccountInfoGet(ctx context.Context, pgxConn *pgxpool.Pool, acctSymbol strin
 		acctInfo.AveragePrice = ticker.AveragePrice()
 	}
 
-	var pvValue PortfolioValueRecord
-	err := pvValue.GetLastDB(pgxConn, ticker.Symbol, "portfolio_value")
-
-	if err != nil {
-		logrus.Error("Error Getting PV for ", ticker.Symbol, " Shares:", acctInfo.NumberOfShares, ":", err.Error())
-	}
-
-	acctInfo.SecurityType = pvValue.Type
-	acctInfo.LatestPrice = getLatestPrice(&pvValue)
+	//var pvValue PortfolioValueRecord
+	//err := pvValue.GetLastDB(pgxConn, ticker.Symbol, "portfolio_value")
+	//
+	//if err != nil {
+	//	logrus.Error("Error Getting PV for ", ticker.Symbol, " Shares:", acctInfo.NumberOfShares, ":", err.Error())
+	//}
+	//
+	//acctInfo.SecurityType = pvValue.Type
+	//acctInfo.LatestPrice = getLatestPrice(&pvValue)
 	return &acctInfo, nil
 }

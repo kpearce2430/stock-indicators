@@ -2,11 +2,13 @@ package model_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"testing"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kpearce2430/keputils/utils"
 	"github.com/kpearce2430/stock-tools/model"
-	"testing"
 )
 
 const portfolioValueTable = "portfolio_value"
@@ -18,12 +20,17 @@ func TestLoadPortfolioValuesError(t *testing.T) {
 		t.Log(err.Error())
 		t.FailNow()
 	}
-	if err := model.LoadPortfolioValues(pgxConn, "pv", "blah", "2023123", nil); err != nil {
-		t.Log(err.Error())
+
+	if err = model.LoadPortfolioValues(pgxConn, "pv", "blah", "2023123", nil); err == nil {
+		t.Error("SHOULD HAVE FAILED")
 		return
 	}
-	t.Log("SHOULD HAVE FAILED")
-	t.Fail()
+
+	if !errors.Is(err, model.ErrMissingLookups) {
+		t.Error("Unexpected error: ", err)
+		return
+	}
+	t.Log("Completed with expected error")
 }
 
 func TestLoadPortfolioValues(t *testing.T) {
@@ -60,14 +67,20 @@ func TestLoadDBPortfolioValues(t *testing.T) {
 
 	pgxConn, err := pgxpool.New(context.Background(), utils.GetEnv("PG_DATABASE_URL", "postgres://postgres:postgres@localhost:5432/postgres"))
 	if err != nil {
-		t.Log(err.Error())
-		t.FailNow()
+		t.Error(err.Error())
+		return
+	}
+
+	truncateSql := fmt.Sprintf("TRUNCATE %s;", portfolioValueTable)
+	if _, err = pgxConn.Exec(context.Background(), truncateSql); err != nil {
+		t.Error(err.Error())
+		return
 	}
 
 	rc, err := model.PortfolioValuesLoadDB(pgxConn, portfolioValueTable, string(testPortfolioValues), "", ls)
 	if err != nil {
-		t.Log(err.Error())
-		t.FailNow()
+		t.Error(err.Error())
+		return
 	}
 
 	var count int
@@ -77,8 +90,8 @@ func TestLoadDBPortfolioValues(t *testing.T) {
 	}
 	t.Log("Count:", count)
 	if count != rc { // TODO: Get the number actually loaded - len(testSet.TransactionRows) {
-		t.Log("Counts don'hist_usaix.csv match")
-		t.Fail()
+		t.Error("Counts don'hist_usaix.csv match")
+		return
 	}
 
 	types, err := model.PortfolioValueGetTypes(pgxConn, portfolioValueTable)

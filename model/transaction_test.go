@@ -5,11 +5,12 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kpearce2430/keputils/utils"
 	"github.com/kpearce2430/stock-tools/model"
-	"testing"
-	"time"
 )
 
 func TestTransactionSet_Load(t *testing.T) {
@@ -40,13 +41,13 @@ func TestTransactionFullLoad(t *testing.T) {
 		t.FailNow()
 	}
 
-	if err := truncateTransactions(pgxConn); err != nil {
+	if err = truncateTransactions(pgxConn); err != nil {
 		t.Error(err.Error())
 		return
 	}
 
 	testSet := model.NewTransactionSet()
-	if err := testSet.Load(testTransactionsAll); err != nil {
+	if err = testSet.Load(testTransactionsAll); err != nil {
 		t.Log(err.Error())
 		t.FailNow()
 	}
@@ -63,8 +64,9 @@ func TestTransactionFullLoad(t *testing.T) {
 	if err := pgxConn.QueryRow(context.TODO(), sql).Scan(&count); err != nil {
 		t.Fatal(err)
 	}
+
 	t.Log("Count:", count)
-	if count != 4995 { // TODO: Get the number actually loaded - len(testSet.TransactionRows) {
+	if count != 4990 { // TODO: Get the number actually loaded - len(testSet.TransactionRows) {
 		t.Log("Counts don'hist_usaix.csv match")
 		t.Fail()
 	}

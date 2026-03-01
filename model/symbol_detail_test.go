@@ -3,12 +3,13 @@ package model_test
 import (
 	"context"
 	_ "embed"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/kpearce2430/keputils/utils"
-	"github.com/kpearce2430/stock-tools/model"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kpearce2430/keputils/utils"
+	"github.com/kpearce2430/stock-tools/model"
 )
 
 const (
@@ -21,19 +22,19 @@ const (
 func TestSymbolInformationSet_MutualFund(t *testing.T) {
 	pgxConn, err := connectToPostgres()
 	if err != nil {
-		t.Log(err.Error())
-		t.FailNow()
+		t.Error(err.Error())
+		return
 	}
 
 	if err = truncateTransactions(pgxConn); err != nil {
-		t.Log(err.Error())
-		t.FailNow()
+		t.Error(err.Error())
+		return
 	}
 
 	ls := model.LoadLookupSet("1", string(csvLookupData))
-	if err := model.TransactionSetLoadToDB(pgxConn, ls, transactionTable, testTransactionsAll); err != nil {
-		t.Log(err.Error())
-		t.FailNow()
+	if err = model.TransactionSetLoadToDB(pgxConn, ls, transactionTable, testTransactionsAll); err != nil {
+		t.Error(err.Error())
+		return
 	}
 
 	ds := model.NewHistoricalDataSet(pgxConn, fundHistory)

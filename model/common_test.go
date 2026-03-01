@@ -5,14 +5,16 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
-	couch_database "github.com/kpearce2430/keputils/couch-database"
-	"github.com/kpearce2430/keputils/utils"
-	"github.com/kpearce2430/stock-tools/postgres"
-	"github.com/sirupsen/logrus"
 	"log"
 	"os"
 	"testing"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	couch_database "github.com/kpearce2430/keputils/couch-database"
+	"github.com/kpearce2430/keputils/utils"
+	"github.com/kpearce2430/stock-tools/model"
+	"github.com/kpearce2430/stock-tools/postgres"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -58,6 +60,7 @@ const (
 	transactionTable     = "transactions"
 	historicalTable      = "historical"
 	stockCache           = "cache"
+	portfolioValue       = "pv"
 )
 
 func truncateTransactions(pgxConn *pgxpool.Pool) error {
@@ -91,7 +94,6 @@ func connectToPostgres() (*pgxpool.Pool, error) {
 }
 
 func TestMain(m *testing.M) {
-
 	ctx := context.Background()
 	postgresDBServer, _ := postgres.CreatePostgresTestServer(ctx)
 	defer func() {
@@ -132,9 +134,18 @@ func TestMain(m *testing.M) {
 	url := fmt.Sprintf("http://%s:%s", cdbIP, cdbMappedPort.Port())
 	logrus.Debugln(url)
 
+	dbs := []string{historicalTable, "pv", fundHistory, "cache"}
+	for _, db := range dbs {
+		databaseStore := couch_database.New[model.PortfolioValueDatabaseRecord](db, url, "admin", "password")
+		if databaseStore.DatabaseCreate() != true {
+			logrus.Fatal("Error creating a database")
+		}
+	}
+
 	_ = os.Setenv("COUCHDB_URL", url)
 	_ = os.Setenv("COUCHDB_USER", "admin")
 	_ = os.Setenv("COUCHDB_PASSWORD", "password")
 	_ = os.Setenv("CACHE_COUCHDB_DATABASE", stockCache)
+
 	os.Exit(m.Run())
 }

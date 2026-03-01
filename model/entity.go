@@ -2,12 +2,13 @@ package model
 
 import (
 	"fmt"
-	"github.com/kpearce2430/keputils/utils"
-	"github.com/segmentio/encoding/json"
-	"github.com/sirupsen/logrus"
 	"math"
 	"strings"
 	"time"
+
+	"github.com/kpearce2430/keputils/utils"
+	"github.com/segmentio/encoding/json"
+	"github.com/sirupsen/logrus"
 )
 
 type TransactionType string
@@ -83,7 +84,7 @@ func NewEntityFromTransaction(tr *Transaction) (*Entity, error) {
 			e.PricePerShare = pps
 
 		default:
-			logrus.Error("Invalid Description for Price Per Share:", e)
+			logrus.Debug("Invalid Description for Price Per Share:", e)
 			e.PricePerShare = 0.00
 			// return &e, errPricePerShare
 		}
@@ -135,7 +136,7 @@ func (e *Entity) String() string {
 	if err != nil {
 		return fmt.Sprintf("%v", err.Error())
 	}
-	return fmt.Sprintf(string(bytes))
+	return string(bytes)
 }
 
 func (e *Entity) amountType(incomeType TransactionType) float64 {

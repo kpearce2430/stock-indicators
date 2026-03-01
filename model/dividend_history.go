@@ -170,14 +170,14 @@ func NewDividendHistory(symbol string) *DividendHistory {
 	}
 }
 
-func GetDividendEntryForYearMonth(pg *pgxpool.Pool, symbol string, year, month int) (*DividendEntry, error) {
+func GetDividendEntryForYearMonth(ctx context.Context, pg *pgxpool.Pool, symbol string, year, month int) (*DividendEntry, error) {
 	today := time.Now()
 	requested := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 	cutOver := time.Date(today.Year()-1, today.Month(), 1, 0, 0, 0, 0, time.UTC)
 
 	if requested.Before(cutOver) {
 		// Check the DB
-		d, err := DividendEntryFromDB(context.Background(), pg, symbol, year, month)
+		d, err := DividendEntryFromDB(ctx, pg, symbol, year, month)
 		if err == nil {
 			return d, nil
 		}
@@ -185,7 +185,7 @@ func GetDividendEntryForYearMonth(pg *pgxpool.Pool, symbol string, year, month i
 			logrus.Error(err.Error())
 			return nil, err
 		}
-		logrus.Info(err.Error())
+		logrus.Debug(err.Error())
 	}
 
 	d := NewDividendEntry(symbol, year, month)
@@ -228,6 +228,7 @@ func GetDividendEntryForYearMonth(pg *pgxpool.Pool, symbol string, year, month i
 	return d, err
 }
 
+// DividendEntryFromDB returns the DividendEntry from the postgres database.
 func DividendEntryFromDB(ctx context.Context, pgxConn *pgxpool.Pool, symbol string, year, month int) (*DividendEntry, error) {
 	selectStatement := fmt.Sprintf(
 		"SELECT %s From %s WHERE symbol = '%s' and year = '%d' and month = '%d' ",
@@ -258,11 +259,10 @@ func DividendEntryFromDB(ctx context.Context, pgxConn *pgxpool.Pool, symbol stri
 	case 1:
 		return &d, nil
 	}
-
 	return nil, fmt.Errorf("invalid number of dividend history entries not found: %d", num)
-
 }
 
+// ToDB will insert the dividends History into Postgres.
 func (d *DividendEntry) ToDB(ctx context.Context, pgxConn *pgxpool.Pool) error {
 	insertStatement := fmt.Sprintf(
 		"INSERT INTO %s (%s) VALUES ('%s','%d','%d','%.2f') ON CONFLICT(symbol, year, month) DO UPDATE SET amount = EXCLUDED.amount;",

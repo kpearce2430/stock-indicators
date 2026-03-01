@@ -3,10 +3,12 @@ package model_test
 import (
 	"context"
 	_ "embed"
+	"fmt"
+	"testing"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kpearce2430/keputils/utils"
 	"github.com/kpearce2430/stock-tools/model"
-	"testing"
 )
 
 //go:embed testdata/lookups.csv
@@ -25,6 +27,12 @@ func TestLoadLookupToDB(t *testing.T) {
 
 	pgxConn, err := pgxpool.New(context.Background(), utils.GetEnv("PG_DATABASE_URL", "postgres://postgres:postgres@localhost:5432/postgres"))
 	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	truncateSql := fmt.Sprintf("TRUNCATE %s;", lookupTableName)
+	if _, err = pgxConn.Exec(context.Background(), truncateSql); err != nil {
 		t.Error(err.Error())
 		return
 	}

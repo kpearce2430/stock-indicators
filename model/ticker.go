@@ -3,9 +3,10 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 // Ticker is the top level storing the Accounts processing Entity records as they are added through AddEntity.
@@ -96,6 +97,11 @@ func NewTicker(symbol string) *Ticker {
 			},
 			{
 				Date:        time.Date(2024, time.March, 25, 00, 00, 00, 00, time.UTC),
+				FromAccount: "z HD Restricted Stock",
+				ToAccount:   "HD ML Individual Account",
+			},
+			{
+				Date:        time.Date(2025, time.March, 26, 00, 00, 00, 00, time.UTC),
 				FromAccount: "z HD Restricted Stock",
 				ToAccount:   "HD ML Individual Account",
 			},
@@ -228,7 +234,7 @@ func (t *Ticker) String() string {
 	if err != nil {
 		return fmt.Sprintf("%v", err.Error())
 	}
-	return fmt.Sprintf(string(bytes))
+	return string(bytes)
 }
 
 func (t *Ticker) AveragePrice() float64 {

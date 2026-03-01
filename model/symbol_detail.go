@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	business_days "github.com/kpearce2430/keputils/business-days"
 	couch_database "github.com/kpearce2430/keputils/couch-database"
 	"github.com/kpearce2430/keputils/utils"
-	polygonclient "github.com/kpearce2430/stock-tools/polygon-client"
+	massive_client "github.com/kpearce2430/stock-tools/massive-client"
 	"github.com/kpearce2430/stock-tools/stock_cache"
-	"github.com/polygon-io/client-go/rest/models"
+	"github.com/massive-com/client-go/v2/rest/models"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 type SymbolDetail struct {
@@ -143,7 +144,7 @@ func (s *SymbolDetail) setStockPrice() error {
 		Username:     utils.GetEnv("COUCHDB_USERNAME", "admin"),
 		Password:     utils.GetEnv("COUCHDB_PASSWORD", "password"),
 	}
-	stockCache, err := stock_cache.NewCache[models.GetDailyOpenCloseAggResponse](&config, polygonclient.NewPolygonClient(""))
+	stockCache, err := stock_cache.NewCache[models.GetDailyOpenCloseAggResponse](&config, massive_client.New())
 	if err != nil {
 		logrus.Fatal("Error Creating Stock Cache:", err.Error())
 		return nil
@@ -235,7 +236,6 @@ func (s *SymbolDetail) SetDividends(pg *pgxpool.Pool) error {
 }
 
 func (s *SymbolDetail) SetPrice() error {
-
 	symbolType, ok := SymbolTypeMap[s.Symbol]
 	if !ok {
 		err := fmt.Errorf("type for symbol %s", s.Symbol)

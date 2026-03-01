@@ -3,9 +3,10 @@ package model_test
 import (
 	"context"
 	"errors"
-	"github.com/kpearce2430/stock-tools/model"
 	"testing"
 	"time"
+
+	"github.com/kpearce2430/stock-tools/model"
 )
 
 func TestDividendEntry_ToDB(t *testing.T) {
@@ -168,7 +169,7 @@ func TestDividendHistory_Sum(t *testing.T) {
 
 	dh := model.NewDividendHistory("USAIX")
 	for i := 1; i <= 12; i++ {
-		d, err := model.GetDividendEntryForYearMonth(pgxConn, "USAIX", 2023, i)
+		d, err := model.GetDividendEntryForYearMonth(context.Background(), pgxConn, "USAIX", 2023, i)
 		if err != nil {
 			t.Error(err.Error())
 			return

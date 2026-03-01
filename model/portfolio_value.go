@@ -3,15 +3,17 @@ package model
 import (
 	"context"
 	"encoding/csv"
+	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
-	couch_database "github.com/kpearce2430/keputils/couch-database"
-	"github.com/kpearce2430/keputils/utils"
-	"github.com/sirupsen/logrus"
 	"io"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	couch_database "github.com/kpearce2430/keputils/couch-database"
+	"github.com/kpearce2430/keputils/utils"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -50,7 +52,7 @@ type PortfolioValueDatabaseRecord struct {
 	IEXHistory string                `json:"iex_history,omitempty"`
 }
 
-var errMissingLookups = fmt.Errorf("missing lookups")
+var ErrMissingLookups = errors.New("missing lookups")
 
 // NewPortfolioValue create a new PortfolioValueRecord from the headers and row values provided.
 func NewPortfolioValue(headers []string, values []string) (*PortfolioValueRecord, error) {
@@ -102,8 +104,8 @@ func NewPortfolioValue(headers []string, values []string) (*PortfolioValueRecord
 func LoadPortfolioValues(p *pgxpool.Pool, databaseName, rawData, julDate string, lookups *LookUpSet) error {
 	const fundHistory = "fund_history"
 	if lookups == nil {
-		logrus.Error(errMissingLookups.Error())
-		return errMissingLookups
+		logrus.Error(ErrMissingLookups.Error())
+		return ErrMissingLookups
 	}
 	pvDatabase, err := couch_database.GetDataStoreByDatabaseName[PortfolioValueDatabaseRecord](databaseName)
 

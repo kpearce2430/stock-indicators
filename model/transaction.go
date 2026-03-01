@@ -6,12 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/kpearce2430/keputils/utils"
-	"github.com/sirupsen/logrus"
 	"io"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kpearce2430/keputils/utils"
+	"github.com/sirupsen/logrus"
 )
 
 var errUnexpectedNumberOfTransactions = errors.New("unexpected number of transactions found")
@@ -47,7 +48,7 @@ func NewTransaction(headers []string, row []string) (*Transaction, error) {
 		case "Date":
 			if row[i] == "" {
 				logrus.Error("Invalid Row(", len(row), ") ", row)
-				return nil, fmt.Errorf("Invalid date in row %d", i)
+				return nil, fmt.Errorf("invalid date in row %d", i)
 			}
 			date, err := time.Parse("1/2/2006", row[i])
 			if err != nil {
@@ -252,7 +253,6 @@ type TransactionLoadStatus struct {
 }
 
 func transactionLoadToDB(tChan chan TransactionLoadStatus, pgxConn *pgxpool.Pool, transTable string, tr *Transaction) {
-
 	ctx := context.Background()
 	tSet := NewTransactionSet()
 	err := tSet.TransactionSetFromDBbyId(ctx, pgxConn, transTable, tr.Id)
@@ -334,12 +334,25 @@ func TransactionSetLoadToDB(pgxConn *pgxpool.Pool, lookups *LookUpSet, transTabl
 			logrus.Debug("Skipping ", tr.Id, " ", tr.Type)
 			continue
 		}
+
+		if tr.Security == "" && tr.Symbol == "" {
+			logrus.Debug("Skipping ", tr)
+			continue
+		}
 		value, ok := lookups.GetLookUpByName(tr.Security)
 		switch {
 		case value == "DEAD":
 			continue
 		case ok:
 			tr.Symbol = value
+		}
+		if tr.Security == "" {
+			logrus.Warning("Transaction [", tr, "] missing Security")
+		}
+		today := time.Now()
+		if tr.Date.After(today) {
+			logrus.Info("Skipping ", tr.Type, " - Future Transaction:", tr.Id, ":", tr.Date)
+			continue
 		}
 		numProcessed++
 		go transactionLoadToDB(tChan, pgxConn, transTable, tr)
@@ -351,6 +364,7 @@ func TransactionSetLoadToDB(pgxConn *pgxpool.Pool, lookups *LookUpSet, transTabl
 		responses = append(responses, response)
 
 		if !ok {
+			logrus.Error("Something bad happened")
 			panic("Something bad happened")
 		}
 
@@ -364,7 +378,7 @@ func TransactionSetLoadToDB(pgxConn *pgxpool.Pool, lookups *LookUpSet, transTabl
 		}
 
 		if len(responses) == numProcessed {
-			logrus.Info("Received all expected responses")
+			logrus.Debug("Received all expected responses")
 			break
 		}
 	}
