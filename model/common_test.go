@@ -1,29 +1,11 @@
 package model_test
 
+/*
 import (
-	"context"
 	_ "embed"
-	"errors"
-	"fmt"
-	"log"
-	"os"
-	"testing"
-
-	"github.com/jackc/pgx/v5/pgxpool"
-	couch_database "github.com/kpearce2430/keputils/couch-database"
-	"github.com/kpearce2430/keputils/utils"
-	"github.com/kpearce2430/stock-tools/model"
-	"github.com/kpearce2430/stock-tools/postgres"
-	"github.com/sirupsen/logrus"
 )
 
 var (
-	//go:embed testdata/aapl.csv
-	applTransactions []byte
-
-	//go:embed testdata/bond_data.csv
-	bondTransactions []byte
-
 	//go:embed testdata/hist_usaix.csv
 	histUsaix []byte
 
@@ -39,59 +21,27 @@ var (
 	//go:embed testdata/portfolio_value.csv
 	testPortfolioValues []byte
 
-	//go:embed testdata/transactions-2023-12-09.csv
+	//go:embed transaction/testdata/transactions-2023-12-09.csv
 	testTransactions3 []byte
 
-	//go:embed testdata/transactions-2023-12-16.csv
+	//go:embed transaction/testdata/transactions-2023-12-16.csv
 	testTransactions4 []byte
 
 	//go:embed testdata/usaix_hist.csv
 	testHistoricalData []byte
 
-	//go:embed testdata/dividends.json
-	testDividendsData []byte
+	////go:embed dividends/testdata/dividends.json
+	//testDividendsData []byte
 
 	//go:embed testdata/trans_2023_1.csv
 	testTrans20231 []byte
 )
 
 const (
-	allTransactionsTable = "all_transactions"
-	transactionTable     = "transactions"
-	historicalTable      = "historical"
-	stockCache           = "cache"
-	portfolioValue       = "pv"
+	historicalTable = "historical"
+	stockCache      = "cache"
 )
 
-func truncateTransactions(pgxConn *pgxpool.Pool) error {
-	countSql := fmt.Sprintf("SELECT COUNT(*) FROM %s;", transactionTable)
-	var count int
-	if err := pgxConn.QueryRow(context.Background(), countSql).Scan(&count); err != nil {
-		return err
-	}
-	logrus.Info("Found ", count, " Rows")
-	if count == 0 {
-		return nil
-	}
-
-	truncateSql := fmt.Sprintf("TRUNCATE %s;", transactionTable)
-	if _, err := pgxConn.Exec(context.Background(), truncateSql); err != nil {
-		return err
-	}
-	return nil
-}
-
-func connectToPostgres() (*pgxpool.Pool, error) {
-	pgxConn, err := pgxpool.New(context.Background(), utils.GetEnv("PG_DATABASE_URL", "postgres://postgres:postgres@localhost:5432/postgres"))
-	if err != nil {
-		return nil, err
-	}
-
-	if pgxConn == nil {
-		return nil, errors.New("nil connection")
-	}
-	return pgxConn, nil
-}
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
@@ -134,9 +84,10 @@ func TestMain(m *testing.M) {
 	url := fmt.Sprintf("http://%s:%s", cdbIP, cdbMappedPort.Port())
 	logrus.Debugln(url)
 
-	dbs := []string{historicalTable, "pv", fundHistory, "cache"}
+	// dbs := []string{historicalTable, "pv", symbol_details.fundHistory, "cache"}
+	dbs := []string{historicalTable, "pv", "cache"}
 	for _, db := range dbs {
-		databaseStore := couch_database.New[model.PortfolioValueDatabaseRecord](db, url, "admin", "password")
+		databaseStore := couch_database.New[portfolio_value.PortfolioValueDatabaseRecord](db, url, "admin", "password")
 		if databaseStore.DatabaseCreate() != true {
 			logrus.Fatal("Error creating a database")
 		}
@@ -149,3 +100,5 @@ func TestMain(m *testing.M) {
 
 	os.Exit(m.Run())
 }
+
+*/

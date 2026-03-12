@@ -2,14 +2,16 @@ package app
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	business_days "github.com/kpearce2430/keputils/business-days"
-	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets"
-	"github.com/kpearce2430/stock-tools/model"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	business_days "github.com/kpearce2430/keputils/business-days"
+	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets"
+	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets/symbol_detail"
+	"github.com/kpearce2430/stock-tools/model"
+	"github.com/sirupsen/logrus"
 )
 
 func (a *App) CreateSymbolDetailHandler(c *gin.Context) {
@@ -36,8 +38,10 @@ func (a *App) CreateSymbolDetailHandler(c *gin.Context) {
 	// ws.DividendCache = a.DividendCache
 
 	symbols := strings.Split(symbolsList, ",")
+
+	sd := symbol_detail.New(ws)
 	for _, s := range symbols {
-		if err := ws.SymbolsDetails(fmt.Sprintf("%s %s", s, worksheetName), s, tableName, currDay, 36); err != nil {
+		if err := sd.SymbolsDetails(fmt.Sprintf("%s %s", s, worksheetName), s, tableName, currDay, 36); err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
 			return
 		}
@@ -47,7 +51,7 @@ func (a *App) CreateSymbolDetailHandler(c *gin.Context) {
 		logrus.Error(err.Error())
 	}
 
-	buff, err := ws.StockFile.GetFile().WriteToBuffer()
+	buff, err := ws.GetExcelizeFile().WriteToBuffer()
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
 		return

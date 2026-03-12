@@ -2,11 +2,12 @@ package stocksheet
 
 import (
 	"errors"
+	"slices"
+
 	"github.com/kpearce2430/stock-tools/stocksheet/column_info"
 	"github.com/kpearce2430/stock-tools/stocksheet/styles"
 	"github.com/sirupsen/logrus"
 	"github.com/xuri/excelize/v2"
-	"slices"
 )
 
 // A file is like workbook made up of sheets
@@ -57,19 +58,16 @@ func NewStockFile(f *excelize.File, s *styles.Styles) *StockFile {
 	}
 }
 
-func (sf *StockFile) GetFile() *excelize.File {
+func (sf *StockFile) GetExcelizeFile() *excelize.File {
 	return sf.file
 }
 
-func (sf *StockFile) SetFile(f *excelize.File) {
-	sf.file = f
+func (sf *StockFile) GetFile() *StockFile {
+	return sf
 }
 
-func (sf *StockFile) CloseFile() error {
-	if sf.GetFile() == nil {
-		return ErrNoFileOpen
-	}
-	return sf.GetFile().Close()
+func (sf *StockFile) GetStyles() *styles.Styles {
+	return sf.Styles
 }
 
 func (sf *StockFile) GetSheet(name string) (*StockSheet, error) {
@@ -81,11 +79,22 @@ func (sf *StockFile) GetSheet(name string) (*StockSheet, error) {
 	return nil, ErrNoSheetFound
 }
 
+func (sf *StockFile) SetFile(f *excelize.File) {
+	sf.file = f
+}
+
+func (sf *StockFile) CloseFile() error {
+	if sf.GetFile() == nil {
+		return ErrNoFileOpen
+	}
+	return sf.file.Close()
+}
+
 func (sf *StockFile) Save(filename string) error {
 	if sf.GetFile() == nil {
 		return ErrNoFileOpen
 	}
-	return sf.GetFile().SaveAs(filename)
+	return sf.file.SaveAs(filename)
 }
 
 func (sf *StockFile) DeleteSheet(name string) error {

@@ -7,27 +7,28 @@ import (
 
 	"github.com/gin-gonic/gin"
 	massive_client "github.com/kpearce2430/stock-tools/massive-client"
-	"github.com/kpearce2430/stock-tools/model"
+	"github.com/kpearce2430/stock-tools/model/dividends"
+	"github.com/kpearce2430/stock-tools/model/portfolio_value"
 	"github.com/sirupsen/logrus"
 )
 
-func (a *App) getDividends(symbol string) (model.DividendsSet, error) {
+func (a *App) getDividends(symbol string) (dividends.DividendsSet, error) {
 	client := massive_client.New()
 
 	set, err := client.GetDataSet(symbol)
 	if err != nil {
 		logrus.Error(err.Error())
-		return model.DividendsSet{}, err
+		return dividends.DividendsSet{}, err
 	}
-	var divs []model.Dividends
+	var divs []dividends.Dividends
 
 	err = json.Unmarshal(set, &divs)
 	if err != nil {
 		logrus.Error(err.Error())
-		return model.DividendsSet{}, err
+		return dividends.DividendsSet{}, err
 	}
 
-	ds := model.NewDividendsSet(divs)
+	ds := dividends.NewDividendsSet(divs)
 	return ds, nil
 }
 
@@ -40,7 +41,7 @@ func (a *App) GetDividendsFromDB(c *gin.Context) {
 		return
 	}
 
-	var ds model.DividendsSet
+	var ds dividends.DividendsSet
 	err := ds.FromDBbySymbol(context.Background(), a.PGXConn, "dividends", symbol)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, err)
@@ -76,7 +77,7 @@ func (a *App) GetDividends(c *gin.Context) {
 }
 
 func (a *App) GetAllDividends(c *gin.Context) {
-	symbolMap, err := model.PortfolioValueGetTypes(a.PGXConn, PortfolioValueDB)
+	symbolMap, err := portfolio_value.GetTypes(a.PGXConn, PortfolioValueDB)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, err)
 		return

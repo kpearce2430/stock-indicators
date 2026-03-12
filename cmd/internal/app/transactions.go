@@ -1,14 +1,14 @@
 package app
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/kpearce2430/stock-tools/model"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
-)
 
-// var errUnexpectedNumberOfTransactions = fmt.Errorf("unexpected number of transactions found")
+	"github.com/gin-gonic/gin"
+	"github.com/kpearce2430/stock-tools/model"
+	"github.com/kpearce2430/stock-tools/model/transaction"
+	"github.com/sirupsen/logrus"
+)
 
 func (a *App) LoadTransactionsHandler(c *gin.Context) {
 	//
@@ -33,7 +33,10 @@ func (a *App) LoadTransactionsHandler(c *gin.Context) {
 		return
 	}
 
-	if err := model.TransactionSetLoadToDB(a.PGXConn, a.LookupSet, databaseName, rawData); err != nil {
+	ts := transaction.NewTransactionSet()
+	if err = ts.LoadToDB(a.PGXConn, a.LookupSet, databaseName, rawData); err != nil {
+		e := make(map[string]string)
+		e["error"] = err.Error()
 		c.IndentedJSON(http.StatusBadRequest, err.Error())
 		return
 	}

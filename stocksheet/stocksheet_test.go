@@ -2,11 +2,12 @@ package stocksheet_test
 
 import (
 	"fmt"
-	"github.com/kpearce2430/stock-tools/stocksheet"
-	ci "github.com/kpearce2430/stock-tools/stocksheet/column_info"
 	"math/rand/v2"
 	"testing"
 	"time"
+
+	"github.com/kpearce2430/stock-tools/stocksheet"
+	ci "github.com/kpearce2430/stock-tools/stocksheet/column_info"
 )
 
 func TestStockSheet_New(t *testing.T) {
@@ -18,7 +19,7 @@ func TestStockSheet_New(t *testing.T) {
 
 func fillRandomStockSheet(sFile *stocksheet.StockFile, sheetName string) error {
 	row := 1
-	colInfoName, err := ci.New(sFile.GetFile(), "Name", sheetName, 1)
+	colInfoName, err := ci.New(sFile.GetExcelizeFile(), "Name", sheetName, 1)
 	if err != nil {
 		return err
 	}
@@ -27,7 +28,7 @@ func fillRandomStockSheet(sFile *stocksheet.StockFile, sheetName string) error {
 		return err
 	}
 
-	colInfoValue, err := ci.New(sFile.GetFile(), "Value", sheetName, 2)
+	colInfoValue, err := ci.New(sFile.GetExcelizeFile(), "Value", sheetName, 2)
 	if err != nil {
 		return err
 	}

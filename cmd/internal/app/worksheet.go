@@ -2,14 +2,19 @@ package app
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	business_days "github.com/kpearce2430/keputils/business-days"
 	"github.com/kpearce2430/keputils/utils"
 	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets"
+	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets/dividend_analysis"
+	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets/lookups"
+	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets/stock_analysis"
+	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets/transactionswks"
 	"github.com/kpearce2430/stock-tools/model"
 	"github.com/sirupsen/logrus"
-	"net/http"
-	"time"
 )
 
 func (a *App) CreateWorksheetHandler(c *gin.Context) {
@@ -29,31 +34,37 @@ func (a *App) CreateWorksheetHandler(c *gin.Context) {
 	ws.StockCache = a.StockCache
 	// ws.DividendCache = a.DividendCache
 
-	if err := ws.StockAnalysis("Stock Analysis", julDate); err != nil {
+	sa := stock_analysis.New(ws)
+	sa.SetStockCache(a.StockCache)
+	err := sa.StockAnalysis("Stock Analysis", julDate)
+	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
 		return
 	}
 
-	if err := ws.DividendSheets(c.Request.Context(), "Dividend Analysis", time.Now(), 48); err != nil {
+	div := dividend_analysis.New(ws)
+	if err = div.DividendSheets(c.Request.Context(), "Dividend Analysis", time.Now(), 48); err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
 		return
 	}
 
-	if err := ws.Transactions("Transactions", julDate); err != nil {
+	tr := transactionswks.New(ws)
+	if err = tr.Transactions("Transactions", julDate); err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
 		return
 	}
 
-	if err := ws.LookupSheet("Lookups"); err != nil {
+	l := lookups.New(ws)
+	if err := l.LookupSheet("Lookups"); err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
 		return
 	}
 
-	if err := ws.StockFile.DeleteSheet("Sheet1"); err != nil {
+	if err = ws.StockFile.DeleteSheet("Sheet1"); err != nil {
 		logrus.Error(err.Error())
 	}
 
-	buff, err := ws.StockFile.GetFile().WriteToBuffer()
+	buff, err := ws.GetExcelizeFile().WriteToBuffer()
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
 		return
@@ -78,7 +89,9 @@ func (a *App) CreateDividendsHandler(c *gin.Context) {
 	ws.Lookups = a.LookupSet
 	ws.StockCache = a.StockCache
 
-	if err := ws.DividendSheets(c.Request.Context(), "Dividend Analysis", time.Now(), 48); err != nil {
+	div := dividend_analysis.New(ws)
+
+	if err := div.DividendSheets(c.Request.Context(), "Dividend Analysis", time.Now(), 48); err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
 		return
 	}
@@ -87,7 +100,7 @@ func (a *App) CreateDividendsHandler(c *gin.Context) {
 		logrus.Error(err.Error())
 	}
 
-	buff, err := ws.StockFile.GetFile().WriteToBuffer()
+	buff, err := ws.GetExcelizeFile().WriteToBuffer()
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
 		return

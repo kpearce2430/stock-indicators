@@ -5,18 +5,20 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/kpearce2430/stock-tools/cmd/internal/handlers/symbollist"
-	"github.com/kpearce2430/stock-tools/model"
-	"github.com/kpearce2430/stock-tools/postgres"
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kpearce2430/stock-tools/cmd/internal/handlers/symbollist"
+	"github.com/kpearce2430/stock-tools/model"
+	lookups2 "github.com/kpearce2430/stock-tools/model/lookups"
+	"github.com/kpearce2430/stock-tools/postgres"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 //go:embed testdata/transactions.csv
@@ -25,12 +27,12 @@ var testTransactions []byte
 //go:embed testdata/lookups.csv
 var testLookups string
 
-var lookups *model.LookUpSet
+var lookups *lookups2.LookUpSet
 var pgxConn *pgxpool.Pool
 
 func TestMain(m *testing.M) {
 	//
-	lookups = model.LoadLookupSet("1", testLookups)
+	lookups = lookups2.LoadLookupSet("1", testLookups)
 	ctx := context.Background()
 	postgresDBServer, _ := postgres.CreatePostgresTestServer(ctx)
 	defer func() {
@@ -54,7 +56,7 @@ func TestMain(m *testing.M) {
 	pgxConn, err = pgxpool.New(context.Background(), pgURL)
 	_ = os.Setenv("PG_DATABASE_URL", pgURL)
 
-	ls := model.LoadLookupSet("1", testLookups)
+	ls := lookups2.LoadLookupSet("1", testLookups)
 
 	if err != nil {
 		logrus.Fatal(err.Error())

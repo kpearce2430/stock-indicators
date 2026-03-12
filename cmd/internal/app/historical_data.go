@@ -1,11 +1,14 @@
 package app
 
+/*
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/kpearce2430/stock-tools/model"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/kpearce2430/stock-tools/model"
+	"github.com/kpearce2430/stock-tools/model/historical"
+	"github.com/sirupsen/logrus"
 )
 
 func (a *App) LoadHistoricalData(c *gin.Context) {
@@ -47,7 +50,7 @@ func (a *App) LoadHistoricalData(c *gin.Context) {
 		return
 	}
 
-	ds := model.NewHistoricalDataSet(a.PGXConn, fundHistory)
+	ds := historical.NewHistoricalDataSet(a.PGXConn, fundHistory)
 	if err := ds.LoadSet(string(rawData), source, symbol); err != nil {
 		c.IndentedJSON(http.StatusBadRequest, err.Error())
 		return
@@ -55,7 +58,6 @@ func (a *App) LoadHistoricalData(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, model.StatusObject{Status: "completed"})
 }
 
-/*
 func (a *App) DeleteHistoricalData(c *gin.Context) {
 	quaryParams := c.Request.URL.Query()
 	databaseName := quaryParams.Get("database")

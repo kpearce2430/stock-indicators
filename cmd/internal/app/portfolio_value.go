@@ -2,13 +2,15 @@ package app
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/kpearce2430/keputils/utils"
-	"github.com/kpearce2430/stock-tools/model"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/kpearce2430/stock-tools/model"
+	"github.com/kpearce2430/stock-tools/model/portfolio_value"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -60,7 +62,7 @@ func (a *App) LoadPortfolioValueHandler(c *gin.Context) {
 	julDate := c.DefaultQuery("juldate", "")
 	logrus.Debugln("julDate:,", julDate, " dbName:", databaseName)
 
-	if err := model.LoadPortfolioValues(a.PGXConn, databaseName, string(rawData), julDate, a.LookupSet); err != nil {
+	if _, err = portfolio_value.LoadDB(a.PGXConn, databaseName, string(rawData), julDate, a.LookupSet); err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
 		return
 	}
@@ -71,8 +73,10 @@ func (a *App) GetPortfolioValueHandler(c *gin.Context) {
 	symbol := c.Param("symbol")
 	logrus.Debug("symbol:", symbol)
 	c.DefaultQuery("database", PortfolioValueDB)
-	julDate := c.DefaultQuery("juldate", utils.JulDate())
-	pvData, err := model.GetPortfolioValue(symbol, julDate)
+	// julDate := c.DefaultQuery("juldate", utils.JulDate())
+	pvData := portfolio_value.PortfolioValueRecord{}
+
+	err := pvData.GetDB(a.PGXConn, symbol, PortfolioValueDB, time.Now())
 
 	if err != nil {
 		logrus.Debug("Get>>", err.Error())
@@ -87,6 +91,7 @@ func (a *App) GetPortfolioValueHandler(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, pvData)
 }
 
+/*
 func (a *App) LoadDBPortfolioValueHandler(c *gin.Context) {
 	logrus.Debug("In LoadDBPortfolioValueHandler ")
 	if a.LookupSet == nil {
@@ -115,7 +120,7 @@ func (a *App) LoadDBPortfolioValueHandler(c *gin.Context) {
 	julDate := c.DefaultQuery("juldate", "")
 	logrus.Debugln("julDate:,", julDate, " dbName:", databaseName)
 
-	count, err := model.PortfolioValuesLoadDB(a.PGXConn, PortfolioValueDB, string(rawData), julDate, a.LookupSet)
+	count, err := portfolio_value.PortfolioValuesLoadDB(a.PGXConn, PortfolioValueDB, string(rawData), julDate, a.LookupSet)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
 		return
@@ -123,3 +128,5 @@ func (a *App) LoadDBPortfolioValueHandler(c *gin.Context) {
 	logrus.Info("Loaded ", count, " records.")
 	c.IndentedJSON(http.StatusOK, model.StatusObject{Status: "ok"})
 }
+
+*/

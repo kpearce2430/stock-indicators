@@ -2,12 +2,14 @@ package app
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets"
-	"github.com/kpearce2430/stock-tools/model"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets"
+	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets/account"
+	"github.com/kpearce2430/stock-tools/model"
+	"github.com/sirupsen/logrus"
 )
 
 func (a *App) AccountDividends(c *gin.Context) {
@@ -30,7 +32,9 @@ func (a *App) AccountDividends(c *gin.Context) {
 	ws.Lookups = a.LookupSet
 	ws.StockCache = a.StockCache
 
-	if err := ws.AccountDividends("Account Dividends", time.Now(), monthsAgo); err != nil {
+	acct := account.New(ws)
+
+	if err := acct.AccountDividends("Account Dividends", time.Now(), monthsAgo); err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
 		return
 	}
@@ -39,7 +43,7 @@ func (a *App) AccountDividends(c *gin.Context) {
 		logrus.Error(err.Error())
 	}
 
-	buff, err := ws.StockFile.GetFile().WriteToBuffer()
+	buff, err := ws.StockFile.GetExcelizeFile().WriteToBuffer()
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
 		return

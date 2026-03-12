@@ -4,13 +4,14 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
-	"github.com/gin-gonic/gin"
-	"github.com/kpearce2430/stock-tools/model"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/kpearce2430/stock-tools/model/portfolio_value"
+	"github.com/stretchr/testify/assert"
 )
 
 const julDate = "2022001"
@@ -102,7 +103,7 @@ func TestLoadPortfolioValue(t *testing.T) {
 					return
 				}
 
-				var status model.PortfolioValueDatabaseRecord
+				var status portfolio_value.PortfolioValueDatabaseRecord
 				err = json.Unmarshal(responseData, &status)
 				if err != nil {
 					t.Log(err.Error())

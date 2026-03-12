@@ -10,7 +10,8 @@ import (
 	"github.com/kpearce2430/keputils/utils"
 	"github.com/kpearce2430/stock-tools/cmd/internal/handlers/symbollist"
 	massive_client "github.com/kpearce2430/stock-tools/massive-client"
-	"github.com/kpearce2430/stock-tools/model"
+	"github.com/kpearce2430/stock-tools/model/lookups"
+	"github.com/kpearce2430/stock-tools/model/ticker"
 	"github.com/kpearce2430/stock-tools/stock_cache"
 	"github.com/massive-com/client-go/v2/rest/models"
 	"github.com/sirupsen/logrus"
@@ -18,9 +19,9 @@ import (
 
 type App struct {
 	Srv           *http.Server
-	LookupSet     *model.LookUpSet
+	LookupSet     *lookups.LookUpSet
 	PGXConn       *pgxpool.Pool
-	Tickers       map[string]*model.Ticker
+	Tickers       map[string]*ticker.Ticker
 	StockCache    *stock_cache.Cache[models.GetDailyOpenCloseAggResponse]
 	DividendCache *stock_cache.Cache[models.Dividend]
 }
@@ -60,14 +61,14 @@ func (a *App) routes() {
 	router.GET("/accountdividends", a.AccountDividends)
 	router.GET(dividendRoute, a.GetDividendsFromDB)
 	router.GET(allDividends, a.GetAllDividends)
-	router.POST(historicalLoadRoute, a.LoadHistoricalData)
+	// router.POST(historicalLoadRoute, a.LoadHistoricalData)
 	// router.DELETE(historicalDeleteRoute, a.DeleteHistoricalData)
 	// router.POST(lookupsRoute, a.LoadLookups)
 	// router.GET(lookupsRoute, a.GetLookups)
 	router.POST(lookupsDBRoute, a.LoadLookupsToPostgres)
 	router.GET(lookupsDBRoute, a.GetLookupsFromPostgres)
 	router.POST(pvRoute, a.LoadPortfolioValueHandler)
-	router.POST(PortfolioLoadDBRoute, a.LoadDBPortfolioValueHandler)
+	// router.POST(PortfolioLoadDBRoute, a.LoadDBPortfolioValueHandler)
 	router.GET(pvSymbolRoute, a.GetPortfolioValueHandler)
 	router.GET(statusRoute, a.Status)
 	router.GET(stockCacheRoute, a.GetStockCache)
@@ -91,7 +92,7 @@ func NewApp(port string) *App {
 			Addr: port,
 		},
 		LookupSet: nil,
-		Tickers:   make(map[string]*model.Ticker),
+		Tickers:   make(map[string]*ticker.Ticker),
 		PGXConn:   pgxConn,
 	}
 

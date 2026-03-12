@@ -12,10 +12,15 @@ import (
 	couchdatabase "github.com/kpearce2430/keputils/couch-database"
 	"github.com/kpearce2430/keputils/utils"
 	massive_client "github.com/kpearce2430/stock-tools/massive-client"
-	"github.com/kpearce2430/stock-tools/model"
+	mock_client "github.com/kpearce2430/stock-tools/mock-client"
+	"github.com/kpearce2430/stock-tools/model/portfolio_value"
 	"github.com/kpearce2430/stock-tools/stock_cache"
 	"github.com/massive-com/client-go/v2/rest/models"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	stockCache = "cache"
 )
 
 func TestMain(m *testing.M) {
@@ -52,7 +57,7 @@ func TestMain(m *testing.M) {
 
 	// Note since I'm not reading or writing to the database via the cache, The model isn't relevant.
 	for _, db := range []string{"dividends", "quotes", "cache", "something"} {
-		databaseStore := couchdatabase.New[model.PortfolioValueDatabaseRecord](db, url, "admin", "password")
+		databaseStore := couchdatabase.New[portfolio_value.PortfolioValueDatabaseRecord](db, url, "admin", "password")
 		if databaseStore.DatabaseCreate() != true {
 			logrus.Fatal("Error creating a database")
 		}
@@ -69,7 +74,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestNewCache(t *testing.T) {
-
 	quoteConfig := couchdatabase.DatabaseConfig{
 		DatabaseName: utils.GetEnv("CACHE_COUCHDB_DATABASE", "quotes"),
 		CouchDBUrl:   utils.GetEnv("COUCHDB_URL", "http://localhost:5984"),
@@ -255,6 +259,29 @@ func TestCache_GetStockDividends(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCache_MockClient(t *testing.T) {
+
+	mockConfig := couchdatabase.DatabaseConfig{
+		DatabaseName: utils.GetEnv("CACHE_COUCHDB_DATABASE", "mock"),
+		CouchDBUrl:   utils.GetEnv("COUCHDB_URL", "http://localhost:5984"),
+		Username:     utils.GetEnv("COUCHDB_USERNAME", "admin"),
+		Password:     utils.GetEnv("COUCHDB_PASSWORD", "password"),
+	}
+
+	cache, err := stock_cache.NewCache[models.Dividend](&mockConfig, mock_client.New())
+	if err != nil {
+		t.Log(err.Error())
+		t.FailNow()
+	}
+
+	data, err := cache.GetCache("TICKER")
+	if err != nil {
+		t.Log(err.Error())
+		t.FailNow()
+	}
+	t.Log(data)
 }
 
 /*

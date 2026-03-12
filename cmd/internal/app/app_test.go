@@ -13,7 +13,9 @@ import (
 	"github.com/kpearce2430/keputils/utils"
 	"github.com/kpearce2430/stock-tools/cmd/internal/app"
 	massiveclient "github.com/kpearce2430/stock-tools/massive-client"
-	"github.com/kpearce2430/stock-tools/model"
+	"github.com/kpearce2430/stock-tools/model/lookups"
+	"github.com/kpearce2430/stock-tools/model/portfolio_value"
+	"github.com/kpearce2430/stock-tools/model/transaction"
 	"github.com/kpearce2430/stock-tools/postgres"
 	"github.com/kpearce2430/stock-tools/stock_cache"
 	"github.com/massive-com/client-go/v2/rest/models"
@@ -33,7 +35,7 @@ func createTestApp() (*app.App, error) {
 	var err error
 	a := app.App{
 		Srv:       nil,
-		LookupSet: model.LoadLookupSet("1", string(csvLookupData)),
+		LookupSet: lookups.LoadLookupSet("1", string(csvLookupData)),
 	}
 
 	a.PGXConn, err = pgxpool.New(context.Background(), utils.GetEnv("PG_DATABASE_URL", "postgres://postgres:postgres@localhost:5432/postgres"))
@@ -42,12 +44,15 @@ func createTestApp() (*app.App, error) {
 		return nil, err
 	}
 
-	if err := model.TransactionSetLoadToDB(a.PGXConn, a.LookupSet, app.TransactionTable, testTransactions); err != nil {
+	ts := transaction.NewTransactionSet()
+	err = ts.LoadToDB(a.PGXConn, a.LookupSet, transaction.TransactionTable, testTransactions)
+	if err != nil {
 		logrus.Error(err.Error())
 		return nil, err
 	}
 
-	if err := model.LoadPortfolioValues(a.PGXConn, app.PortfolioValueDB, string(csvPortfolioValueData), utils.JulDate(), a.LookupSet); err != nil {
+	_, err = portfolio_value.LoadDB(a.PGXConn, app.PortfolioValueDB, string(csvPortfolioValueData), utils.JulDate(), a.LookupSet)
+	if err != nil {
 		logrus.Error(err.Error())
 		return nil, err
 	}
@@ -101,7 +106,7 @@ func TestMain(m *testing.M) {
 		_ = couchDBServer.Terminate(ctx)
 	}()
 
-	postgresDBServer, _ := postgres.CreatePostgresTestServer(ctx)
+	postgresDBServer, _ := postgres.StartPostgresTestServer(ctx)
 	defer func() {
 		_ = postgresDBServer.Terminate(ctx)
 	}()
@@ -127,25 +132,11 @@ func TestMain(m *testing.M) {
 
 	// Note since I'm not reading or writing to the database via the cache, The model isn't relevant.
 	for _, db := range []string{"dividends", app.PortfolioValueDB, "cache", "something"} {
-		databaseStore := couchdatabase.New[model.PortfolioValueDatabaseRecord](db, url, "admin", "password")
+		databaseStore := couchdatabase.New[portfolio_value.PortfolioValueDatabaseRecord](db, url, "admin", "password")
 		if databaseStore.DatabaseCreate() != true {
 			logrus.Fatal("Error creating a database")
 		}
 	}
-
-	pgIP, err := postgresDBServer.Host(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	pgMappedPort, err := postgresDBServer.MappedPort(ctx, "5432")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// postgres://postgres:postgres@localhost:5432/postgres
-	pgURL := fmt.Sprintf("postgres://postgres:postgres@%s:%s/postgres", pgIP, pgMappedPort.Port())
-	_ = os.Setenv("PG_DATABASE_URL", pgURL)
 
 	testApp, err = createTestApp()
 	if err != nil {

@@ -121,10 +121,16 @@ func callGetDailyOpenCloseAgg(t *testing.T, tc *MassiveTests, args ...string) {
 
 func TestMassiveClient_GetDailyOpenCloseAgg(t *testing.T) {
 	t.Parallel()
-	args := [][]string{
-		{},          // Today...
-		{"2026056"}, // 2026-02-25
+	args := [][]string{}
+
+	today := time.Now()
+	if today.Weekday() == time.Saturday || today.Weekday() == time.Sunday {
+		prev_day := business_days.GetBusinessDay(today)
+		julDay := utils.JulDateFromTime(prev_day)
+		args = append(args, []string{julDay})
 	}
+
+	args = append(args, []string{"2026056"})
 	for i, arg := range args {
 		for j, tc := range tests {
 			t.Run(tc.Symbol+"/"+fmt.Sprintf("%d/%d", i, j), func(t *testing.T) {

@@ -2,13 +2,15 @@ package app
 
 import (
 	"context"
+	"io"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	couch_database "github.com/kpearce2430/keputils/couch-database"
 	"github.com/kpearce2430/keputils/utils"
 	"github.com/kpearce2430/stock-tools/model"
+	"github.com/kpearce2430/stock-tools/model/lookups"
 	"github.com/sirupsen/logrus"
-	"io"
-	"net/http"
 )
 
 const lookupTableName = "lookups"
@@ -98,7 +100,7 @@ func (a *App) LoadLookupsToPostgres(c *gin.Context) {
 		tableName = lookupTableName
 	}
 
-	if err = model.LoadLookupFromCSV(c.Request.Context(), a.PGXConn, tableName, rawData); err != nil {
+	if err = lookups.LoadLookupFromCSV(c.Request.Context(), a.PGXConn, tableName, rawData); err != nil {
 		status := model.StatusObject{Status: err.Error()}
 		c.IndentedJSON(http.StatusInternalServerError, status)
 		return
@@ -179,7 +181,7 @@ func (a *App) GetLookupName(c *gin.Context) {
 	c.IndentedJSON(http.StatusNotFound, model.StatusObject{Status: "Not Found", Symbol: ""})
 }
 
-func (a *App) getLookupsFromCouchDB(id string) (*model.LookUpSet, error) {
+func (a *App) getLookupsFromCouchDB(id string) (*lookups.LookUpSet, error) {
 	//
 	config := couch_database.DatabaseConfig{
 		DatabaseName: utils.GetEnv("LOOKUPS_COUCHDB_DATABASE", "lookups"),
@@ -187,7 +189,7 @@ func (a *App) getLookupsFromCouchDB(id string) (*model.LookUpSet, error) {
 		Username:     utils.GetEnv("COUCHDB_USERNAME", "admin"),
 		Password:     utils.GetEnv("COUCHDB_PASSWORD", "password"),
 	}
-	lookupDatabase := couch_database.NewDataStore[model.LookUpSet](&config)
+	lookupDatabase := couch_database.NewDataStore[lookups.LookUpSet](&config)
 
 	_, err := lookupDatabase.DatabaseExists()
 	if err != nil {
@@ -198,6 +200,6 @@ func (a *App) getLookupsFromCouchDB(id string) (*model.LookUpSet, error) {
 	return lookupDatabase.DocumentGet(id)
 }
 
-func (a *App) getLookupsFromPostgres(tableName string) (*model.LookUpSet, error) {
-	return model.GetLookUpsFromDB(context.Background(), a.PGXConn, tableName)
+func (a *App) getLookupsFromPostgres(tableName string) (*lookups.LookUpSet, error) {
+	return lookups.GetLookUpsFromDB(context.Background(), a.PGXConn, tableName)
 }
