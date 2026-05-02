@@ -9,6 +9,7 @@ import (
 	business_days "github.com/kpearce2430/keputils/business-days"
 	"github.com/kpearce2430/keputils/utils"
 	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets"
+	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets/account"
 	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets/dividend_analysis"
 	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets/lookups"
 	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets/stock_analysis"
@@ -27,7 +28,7 @@ func (a *App) CreateWorksheetHandler(c *gin.Context) {
 	worksheetName := c.DefaultQuery("name", "worksheet")
 	currDay := business_days.GetBusinessDay(time.Now())
 	julDate := c.DefaultQuery("juldate", utils.JulDateFromTime(currDay))
-	logrus.Info("Worksheet ", worksheetName, " Julian Date is:", julDate)
+	logrus.Debug("Worksheet ", worksheetName, " Julian Date is:", julDate)
 
 	ws := worksheets.New(a.PGXConn)
 	ws.Lookups = a.LookupSet
@@ -44,6 +45,13 @@ func (a *App) CreateWorksheetHandler(c *gin.Context) {
 
 	div := dividend_analysis.New(ws)
 	if err = div.DividendSheets(c.Request.Context(), "Dividend Analysis", time.Now(), 48); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
+		return
+	}
+
+	acct := account.New(ws)
+
+	if err := acct.AccountDividends("Account Dividends", time.Now(), 48); err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, model.StatusObject{Status: err.Error()})
 		return
 	}

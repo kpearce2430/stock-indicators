@@ -142,17 +142,18 @@ func (ts *TransactionSet) LoadToDB(pgxConn *pgxpool.Pool, lookups *lookups.LookU
 	logrus.Info("Number of rows :", len(ts.TransactionRows))
 	for _, tr := range ts.TransactionRows {
 		if tr.Type == "Payment/Deposit" {
-			logrus.Debug("Skipping ", tr.Id, " ", tr.Type)
+			logrus.Debug("Skipping Payment ", tr.Id, " ", tr.Type)
 			continue
 		}
 
 		if tr.Security == "" && tr.Symbol == "" {
-			logrus.Debug("Skipping ", tr)
+			logrus.Debug("Skipping Blank Security and Symbol ", tr)
 			continue
 		}
 		value, ok := lookups.GetLookUpByName(tr.Security)
 		switch {
 		case value == "DEAD":
+			logrus.Debug("Skipping ", tr.Security, " DEAD ", tr.Id)
 			continue
 		case ok:
 			tr.Symbol = value
@@ -168,6 +169,13 @@ func (ts *TransactionSet) LoadToDB(pgxConn *pgxpool.Pool, lookups *lookups.LookU
 		numProcessed++
 		go transactionLoadToDB(tChan, pgxConn, transTable, tr)
 	}
+
+	if numProcessed == 0 {
+		logrus.Warning("No transactions to process")
+		return errors.New("no transactions to process")
+	}
+
+	logrus.Debug("Waiting for all transactions to be processed:", numProcessed)
 
 	var responses []TransactionLoadStatus
 	for {
@@ -282,6 +290,8 @@ func (ts *TransactionSet) getTransactions(ctx context.Context, pg *pgxpool.Pool,
 	if len(ts.TransactionRows) > 0 {
 		clear(ts.TransactionRows)
 	}
+
+	logrus.Debug("Querying ", selectStatement)
 
 	rows, err := pg.Query(ctx, selectStatement)
 	if err != nil {
@@ -400,6 +410,7 @@ func (tr *Transaction) TransactionToDB(ctx context.Context, pg *pgxpool.Pool, ta
 func transactionLoadToDB(tChan chan TransactionLoadStatus, pgxConn *pgxpool.Pool, transTable string, tr *Transaction) {
 	ctx := context.Background()
 	tSet := NewTransactionSet()
+	logrus.Debug("Checking ", tr.Id)
 	err := tSet.FromDBbyId(ctx, pgxConn, transTable, tr.Id)
 	if err != nil {
 		logrus.Error("on ", tr.Id, " : ", err.Error())
@@ -410,6 +421,8 @@ func transactionLoadToDB(tChan chan TransactionLoadStatus, pgxConn *pgxpool.Pool
 		}
 		return
 	}
+
+	logrus.Debug("Found ", tr.Id)
 
 	switch len(tSet.TransactionRows) {
 	case 0:

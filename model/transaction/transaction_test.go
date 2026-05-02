@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"log"
+	"os"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -25,16 +26,18 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	//logLevel, err := logrus.ParseLevel(utils.GetEnv("LOG_LEVEL", "debug"))
+	//if err != nil {
+	//	defer logrus.Infof("Unknown log level %s, setting to `info`.", logLevel)
+	//}
+	//logrus.SetLevel(logLevel)
 	ctx := context.Background()
-
 	postgresDBServer, _ := postgres.StartPostgresTestServer(ctx)
-	defer func() {
-		if err := postgresDBServer.Terminate(ctx); err != nil {
-			log.Fatal(err.Error())
-		}
-	}()
-
-	m.Run()
+	c := m.Run()
+	if err := postgresDBServer.Terminate(ctx); err != nil {
+		log.Fatal(err.Error())
+	}
+	os.Exit(c)
 }
 
 func TestTransaction(t *testing.T) {

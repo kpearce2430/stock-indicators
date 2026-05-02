@@ -82,7 +82,7 @@ func SymbolList(ctx context.Context, pgxConn *pgxpool.Pool, lookups *lookups.Loo
 			case true:
 				symbol = value
 			default:
-				logrus.Warning("No symbol for [", security, "]")
+				logrus.Debug("No symbol for [", security, "]")
 			}
 		}
 

@@ -62,6 +62,7 @@ func (s *TickerSet) GetTicker(symbol string) (*Ticker, bool) {
 
 // NewTicker creates a new Ticker
 func NewTicker(symbol string) *Ticker {
+	// TODO: Put events in table.
 	return &Ticker{
 		Symbol:   symbol,
 		Accounts: make(map[string]*Account),
@@ -103,6 +104,11 @@ func NewTicker(symbol string) *Ticker {
 			},
 			{
 				Date:        time.Date(2025, time.March, 26, 00, 00, 00, 00, time.UTC),
+				FromAccount: "z HD Restricted Stock",
+				ToAccount:   "HD ML Individual Account",
+			},
+			{
+				Date:        time.Date(2026, time.March, 25, 00, 00, 00, 00, time.UTC),
 				FromAccount: "z HD Restricted Stock",
 				ToAccount:   "HD ML Individual Account",
 			},
@@ -168,9 +174,7 @@ func (t *Ticker) AddEntity(en *Entity) {
 			}
 		}
 	}
-
 	acct.AddEntity(en)
-	logrus.Debug("len of entities:", len(acct.Entities))
 }
 
 func (t *Ticker) NumberOfShares() float64 {

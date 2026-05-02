@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"log"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -145,4 +146,25 @@ func TestWorkSheets_StockAnalysis(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
+}
+
+func TestWorkSheets_StockAnalysis_BuildSumList(t *testing.T) {
+	var list = []string{"a", "b", "c"}
+	s := stock_analysis.New(nil)
+	result := s.BuildSumList(list, 10)
+	if strings.Compare(result, "a10,b10,c10") != 0 {
+		t.Error("BuildSumList failed")
+		return
+	}
+	t.Log(result)
+	t.Log(s.BuildSumList(list, 11))
+
+	var list2 = []string{"a"}
+	result2 := s.BuildSumList(list2, 12)
+	if strings.Compare(result2, "a12") != 0 {
+		t.Error("BuildSumList failed")
+		return
+	}
+	t.Log(result2)
+
 }

@@ -10,22 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//const (
-//	TransactionID               = "ID"
-//	TransactionDate             = "Date"
-//	TransactionType             = "Type"
-//	TransactionSecurity         = "Security"
-//	TransactionSecurityPayee    = "Security Payee"
-//	TransactionSymbol           = "Symbol"
-//	TransactionAccount          = "Account"
-//	TransactionDescription      = "Description"
-//	TransactionShares           = "Shares"
-//	TransactionInvestmentAmount = "Investment Amount"
-//	TransactionAmount           = "Amount"
-//	TransactionYear             = "Year"
-//	TransactionMonth            = "Month"
-//)
-
 type TransactionsWorksheet struct {
 	w worksheets.WorksheetInterface
 }
@@ -55,7 +39,7 @@ func (t *TransactionsWorksheet) Transactions(worksheetName, julDate string) erro
 		return err
 	}
 
-	logrus.Info("Received ", len(tSet.TransactionRows), " transactions")
+	logrus.Debug("Received ", len(tSet.TransactionRows), " transactions")
 
 	headers := []string{
 		transaction.TransactionID, transaction.TransactionDate, transaction.TransactionType,

@@ -144,7 +144,7 @@ func LoadDB(pgxConn *pgxpool.Pool, databaseName, rawData, julDate string, lookup
 					logrus.Error(err)
 					return -1, err
 				}
-				logrus.Info("Date:", date)
+				logrus.Debug("Date:", date)
 				continue
 			}
 

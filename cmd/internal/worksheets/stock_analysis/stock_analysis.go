@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets"
@@ -107,6 +108,9 @@ func (s *StockAnalysisWorksheet) writeStockAnalysisDetailRow(worksheet *stockshe
 		dividendsSet dividends.DividendsSet
 		stockInfo    *models.GetDailyOpenCloseAggResponse
 	)
+
+	var fidelityRows []string
+	var schwabRows []string
 
 	if len(tickerInfo.Symbol) < 5 {
 		_ = dividendsSet.FromDBbySymbol(context.Background(), s.GetPGXConn(), "dividends", tickerInfo.Symbol)
@@ -303,7 +307,7 @@ func (s *StockAnalysisWorksheet) writeStockAnalysisDetailRow(worksheet *stockshe
 			triggerColRow = colInfo.GetColRow(row)
 
 		case CurrentAmount:
-			// =IF(AD2=TRUE,M2,0)
+			// =IF(AD2=TRUE,N2,0)
 			formula := fmt.Sprintf("=IF(%s=TRUE,%s,0)", triggerColRow, totalValueColRow)
 			err = colInfo.WriteCell(row, formula, s.GetStyles().AccountingStyle(row))
 			currentAmountCol := colInfo.ColumnID
@@ -324,18 +328,23 @@ func (s *StockAnalysisWorksheet) writeStockAnalysisDetailRow(worksheet *stockshe
 			}
 
 		case Fidelity:
-			// =IF(AD3=TRUE,(SUM(D3:F3)*L3)/$L$15,0)
-			// ToDo: Columns are static.  Need to add a way determine which accounts are fidelity
-			formula := fmt.Sprintf("=IF(%[1]s=TRUE,(SUM(D%[2]d:F%[2]d)*L%[2]d)/%[3]s,0)",
-				triggerColRow, row, fidelityLatestPrice)
+			// =IF(AD3=TRUE,(SUM(D3)*m3)/$L$15,0)
+			if len(fidelityRows) == 0 {
+				logrus.Error("No Fidelity Accounts Found")
+				return errors.New("no fidelity accounts found")
+			}
+			fidelitySumRows := s.BuildSumList(fidelityRows, row)
+
+			formula := fmt.Sprintf("=IF(%s=TRUE,(SUM(%s)*%s)/%s,0)",
+				triggerColRow, fidelitySumRows, lastPriceColRow, fidelityLatestPrice)
 			err = colInfo.WriteCell(row, formula, s.GetStyles().NumberStyle(row))
 			fidelityCol := colInfo.ColumnID
 			fidelityColRow = colInfo.GetColRow(row)
 			if row == 2 {
-				logrus.Info("Fidelity Formula:", formula)
+				logrus.Debug("Fidelity Formula:", formula)
 				formula = fmt.Sprintf("=sum(%[1]s2:%[1]s%[2]d)", fidelityCol, numberSymbols+1)
 				err = colInfo.WriteCell(numberSymbols+2, formula, s.GetStyles().NumberStyle(numberSymbols+2))
-				logrus.Info("Fidelity Formula:", formula)
+				logrus.Debug("Fidelity Formula:", formula)
 			}
 
 		case FidelityDividend:
@@ -352,7 +361,14 @@ func (s *StockAnalysisWorksheet) writeStockAnalysisDetailRow(worksheet *stockshe
 		case Schwab:
 			// =IF(AD3=TRUE,(SUM(D3:F3)*L3)/$L$33,0)
 			// ToDo: Columns are static.  Need to add a way determine which accounts are schwab
-			formula := fmt.Sprintf("=IF(%[1]s=TRUE,(SUM(G%[2]d:J%[2]d)*L%[2]d)/%[3]s,0)", triggerColRow, row, schwabLatestPrice)
+			if len(schwabRows) == 0 {
+				logrus.Error("No Schwab Accounts Found")
+				return errors.New("no schwab accounts found")
+			}
+
+			sumRows := s.BuildSumList(schwabRows, row)
+
+			formula := fmt.Sprintf("=IF(%s=TRUE,(SUM(%s)*%s)/%s,0)", triggerColRow, sumRows, lastPriceColRow, schwabLatestPrice)
 			err = colInfo.WriteCell(row, formula, s.GetStyles().NumberStyle(row))
 			schwabCol := colInfo.ColumnID
 			schwabColRow = colInfo.GetColRow(row)
@@ -387,11 +403,6 @@ func (s *StockAnalysisWorksheet) writeStockAnalysisDetailRow(worksheet *stockshe
 			formula := fmt.Sprintf("=if(%[1]s=TRUE,if(%[2]s>0,((%[3]s+%[4]s)-%[5]s)/%[5]s,0),0)",
 				triggerColRow, affectedDividendColRow, fidelityDividendColRow, schwabDividendColRow, affectedDividendColRow)
 			err = colInfo.WriteCell(row, formula, s.GetStyles().PercentStyle(row))
-			//fidelityCol := colInfo.ColumnID
-			//if row == 2 {
-			//	formula = fmt.Sprintf("=sum(%[1]s2:%[1]s%[2]d)", fidelityCol, numberSymbols+1)
-			//	err = colInfo.WriteCell(numberSymbols+2, formula, w.styles.NumberStyle(numberSymbols+2))
-			//}
 
 		default: // Assumed to be one of the accounts
 			shares, ok := tickerInfo.Accounts[colInfo.Name]
@@ -401,10 +412,14 @@ func (s *StockAnalysisWorksheet) writeStockAnalysisDetailRow(worksheet *stockshe
 			if shares < 2 {
 				shares = 0
 			}
+			if strings.Contains(colInfo.Name, "Fidelity") {
+				fidelityRows = append(fidelityRows, colInfo.ColumnID)
+			} else {
+				schwabRows = append(schwabRows, colInfo.ColumnID)
+			}
 			err = colInfo.WriteCell(row, shares, s.GetStyles().GeneralStyle(row))
 		}
 	}
-
 	return err
 }
 
@@ -486,8 +501,6 @@ func (s *StockAnalysisWorksheet) StockAnalysis(worksheetName, julDate string) er
 		columnNames = append(columnNames, remainingColumnTitles[i])
 	}
 
-	// Create Columns
-	// var allColumns []*ColumnInfo
 	column := 1
 	for i := 0; i < len(columnNames); i++ {
 		colInfoName, err := column_info.New(s.GetExcelizeFile(), columnNames[i], worksheetName, column)
@@ -669,4 +682,15 @@ func (s *StockAnalysisWorksheet) customFormat(fontColor, fillColor, fontFamily s
 		},
 	)
 	return format, err
+}
+
+func (s *StockAnalysisWorksheet) BuildSumList(list []string, row int) string {
+	sb := strings.Builder{}
+	for i, v := range list {
+		sb.WriteString(fmt.Sprintf("%s%d", v, row))
+		if i < len(list)-1 {
+			sb.WriteString(",")
+		}
+	}
+	return sb.String()
 }
