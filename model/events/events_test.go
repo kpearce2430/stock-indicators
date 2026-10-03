@@ -6,9 +6,9 @@ import (
 	"log"
 	"testing"
 
+	"github.com/kpearce2430/keputils/postgres"
 	"github.com/kpearce2430/stock-tools/model/ticker"
 	"github.com/kpearce2430/stock-tools/model/transaction"
-	"github.com/kpearce2430/stock-tools/postgres"
 )
 
 var (

@@ -6,23 +6,21 @@ import (
 	"github.com/kpearce2430/stock-tools/cmd/internal/worksheets"
 	"github.com/kpearce2430/stock-tools/stocksheet"
 	"github.com/kpearce2430/stock-tools/stocksheet/column_info"
-	"github.com/kpearce2430/stock-tools/stocksheet/styles"
 	"github.com/sirupsen/logrus"
-	"github.com/xuri/excelize/v2"
 )
 
-type MonteCarloInterface interface {
-	// GetStockSheet() (*stocksheet.StockSheet,error)
-	GetFile() *stocksheet.StockFile
-	GetStyles() *styles.Styles
-	GetExcelizeFile() *excelize.File
-}
+//type MonteCarloInterface interface {
+//	// GetStockSheet() (*stocksheet.StockSheet,error)
+//	GetFile() *stocksheet.StockFile
+//	GetStyles() *styles.Styles
+//	GetExcelizeFile() *excelize.File
+//}
 
 type MonteCarlo struct {
 	M worksheets.WorksheetInterface
 }
 
-func NewMonteCarlo(m MonteCarloInterface) *MonteCarlo {
+func New(m worksheets.WorksheetInterface) *MonteCarlo {
 	return &MonteCarlo{M: m}
 }
 

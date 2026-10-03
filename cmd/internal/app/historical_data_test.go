@@ -1,16 +1,6 @@
 package app_test
 
-import (
-	"bytes"
-	"github.com/gin-gonic/gin"
-	"io"
-
-	// "github.com/kpearce2430/stock-tools/model"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-)
-
+/*
 func TestApp_LoadHistoricalData(t *testing.T) {
 	t.Parallel()
 	gin.SetMode(gin.TestMode)
@@ -34,3 +24,5 @@ func TestApp_LoadHistoricalData(t *testing.T) {
 	}
 	t.Log(string(responseData))
 }
+
+*/

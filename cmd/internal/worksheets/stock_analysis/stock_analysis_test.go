@@ -96,7 +96,8 @@ func TestMain(m *testing.M) {
 	if databaseStore.DatabaseCreate() != true {
 		logrus.Fatal("Error creating a database")
 	}
-	// TODO: Preload the database with the data to stop calls to Massive.
+
+	//
 	config := couchdatabase.DatabaseConfig{
 		DatabaseName: stockCacheDBName,
 		CouchDBUrl:   cdbURL,

@@ -3,14 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/kpearce2430/keputils/utils"
-	"github.com/kpearce2430/stock-tools/cmd/internal/app"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/kpearce2430/keputils/utils"
+	"github.com/kpearce2430/stock-tools/cmd/internal/app"
 )
 
 func main() {
@@ -25,12 +26,12 @@ func main() {
 		}
 	}()
 
-	// Wait for interrupt signal to gracefully shut down the server with
+	// Wait for the interrupt signal to gracefully shut down the server with
 	// a timeout of 5 seconds.
 	quit := make(chan os.Signal)
 	// kill (no param) default send syscanll.SIGTERM
 	// kill -2 is syscall.SIGINT
-	// kill -9 is syscall. SIGKILL but can"hist_usaix.csv be catch, so don'hist_usaix.csv need add it
+	// kill -9 is syscall. SIGKILL
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutdown Server ...")

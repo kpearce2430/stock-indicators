@@ -266,6 +266,30 @@ func (p *PortfolioValueRecord) GetDB(pgxConn *pgxpool.Pool, symbol, tableName st
 	return p.getRecord(pgxConn, selectStatement)
 }
 
+func (ps *PortfolioValueSet) GetLastBefore(year, month int) error {
+	// select * from portfolio_value where date < '2026-04-01 00:00:00' and symbol = 'AAPL' order by date desc limit 10;
+	var queryStatement string
+	symbolQuery := ""
+	if ps.symbol != "" {
+		symbolQuery = fmt.Sprintf(" symbol = '%s' and", ps.symbol)
+	}
+
+	switch month {
+	case 12:
+		endMonth := 01
+		endYear := year + 1
+		queryStatement = fmt.Sprintf(
+			"SELECT %s From %s WHERE %s date >= '%s' AND date < '%s' ORDER BY date DESC LIMIT 1 ",
+			pvTableFields, ps.tableName, symbolQuery, fmt.Sprintf("%4d-%02d-01", year, month), fmt.Sprintf("%4d-%02d-01", endYear, endMonth))
+	default:
+		endMonth := month + 1
+		queryStatement = fmt.Sprintf(
+			"SELECT %s From %s WHERE %s date >= '%s' AND date < '%s' ORDER BY date DESC LIMIT 1 ",
+			pvTableFields, ps.tableName, symbolQuery, fmt.Sprintf("%4d-%02d-01", year, month), fmt.Sprintf("%4d-%02d-01", year, endMonth))
+	}
+	return ps.getRecords(queryStatement)
+}
+
 func (p *PortfolioValueRecord) GetLastDB(pgxConn *pgxpool.Pool, symbol, tableName string) error {
 	selectStatement := fmt.Sprintf(
 		"SELECT %s From %s WHERE symbol = '%s' order by date desc limit 1 ",
@@ -276,6 +300,11 @@ func (p *PortfolioValueRecord) GetLastDB(pgxConn *pgxpool.Pool, symbol, tableNam
 
 func (p *PortfolioValueRecord) getRecord(pgxConn *pgxpool.Pool, selectStatement string) error {
 	rows, err := pgxConn.Query(context.Background(), selectStatement)
+	if err != nil {
+		logrus.Error(err.Error())
+		return err
+	}
+
 	var date time.Time
 	// Iterate through the result set
 	i := 0
@@ -291,6 +320,8 @@ func (p *PortfolioValueRecord) getRecord(pgxConn *pgxpool.Pool, selectStatement 
 			logrus.Error(err.Error())
 			return err
 		}
+		p.Date = date
+		logrus.Debugf("%v : %s : %s", date, p.Symbol, p.Name)
 		i++
 	}
 	rows.Close()
@@ -303,13 +334,13 @@ func (p *PortfolioValueRecord) getRecord(pgxConn *pgxpool.Pool, selectStatement 
 
 func GetSymbolType(pgxConn *pgxpool.Pool, portfolioValueTable, symbol string) (string, error) {
 	var t string
-	sql := fmt.Sprintf("SELECT type FROM %s WHERE symbol = '%s' LIMIT 1;",
+	sql := fmt.Sprintf("SELECT type FROM %s WHERE symbol = '%s' ORDER BY date DESC LIMIT 1;",
 		portfolioValueTable, symbol)
 	if err := pgxConn.QueryRow(context.Background(), sql).Scan(&t); err != nil {
 		logrus.Error(err.Error())
 		return t, err
 	}
-	logrus.Infof("%s : %s", symbol, t)
+	logrus.Debugf("%s : %s", symbol, t)
 	return t, nil
 }
 
@@ -381,6 +412,5 @@ func (ps *PortfolioValueSet) getRecords(selectStatement string) error {
 		}
 		ps.Set = append(ps.Set, p)
 	}
-
 	return nil
 }

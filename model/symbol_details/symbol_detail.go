@@ -38,6 +38,7 @@ type SymbolDetailSet struct {
 func (set *SymbolDetailSet) String() string {
 	b, err := json.MarshalIndent(set, "", "  ")
 	if err != nil {
+		logrus.Error(err.Error())
 		return err.Error()
 	}
 	return string(b)
@@ -140,27 +141,6 @@ func (s *SymbolDetail) setStockPrice() error {
 	jDate := fmt.Sprintf("%d%03d", date.Year(), date.YearDay())
 	logrus.Debug("jDate:", jDate)
 
-	// var p *models.GetDailyOpenCloseAggResponse
-	//config := couch_database.DatabaseConfig{
-	//	DatabaseName: utils.GetEnv("CACHE_COUCHDB_DATABASE", "cache"),
-	//	CouchDBUrl:   utils.GetEnv("COUCHDB_URL", "http://localhost:5984"),
-	//	Username:     utils.GetEnv("COUCHDB_USERNAME", "admin"),
-	//	Password:     utils.GetEnv("COUCHDB_PASSWORD", "password"),
-	//}
-	//stockCache, err := stock_cache.NewCache[models.GetDailyOpenCloseAggResponse](&config, massive_client.New())
-	//if err != nil {
-	//	logrus.Fatal("Error Creating Stock Cache:", err.Error())
-	//	return nil
-	//}
-	//
-	//if _, err := stockCache.DatabaseExists(); err != nil {
-	//	if ok := stockCache.DatabaseCreate(); !ok {
-	//		err := fmt.Errorf("couchdb error with %s", config.DatabaseName)
-	//		logrus.Error(err)
-	//	}
-	//}
-	// logrus.Debug("jDate:", jDate)
-
 	p, err := s.StockCache.GetCache(s.Symbol, jDate)
 	if err != nil {
 		logrus.Error(err.Error())
@@ -211,7 +191,6 @@ func (s *SymbolDetail) SetNumberOfShares(pg *pgxpool.Pool) error {
 }
 
 func (s *SymbolDetail) SetDividends(pg *pgxpool.Pool) error {
-
 	tickerSet := ticker2.NewTickerSet()
 	ts := transaction.NewTransactionSet()
 	if err := ts.ForMonth(context.Background(), pg, s.Symbol, s.Year, s.Month); err != nil {

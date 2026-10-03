@@ -13,10 +13,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kpearce2430/keputils/postgres"
 	"github.com/kpearce2430/stock-tools/cmd/internal/handlers/symbollist"
-	"github.com/kpearce2430/stock-tools/model"
 	lookups2 "github.com/kpearce2430/stock-tools/model/lookups"
-	"github.com/kpearce2430/stock-tools/postgres"
+	"github.com/kpearce2430/stock-tools/model/transaction"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
@@ -61,7 +61,9 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		logrus.Fatal(err.Error())
 	}
-	if err := model.TransactionSetLoadToDB(pgxConn, ls, "transactions", testTransactions); err != nil {
+
+	ts := transaction.NewTransactionSet()
+	if err := ts.LoadToDB(pgxConn, ls, "transactions", testTransactions); err != nil {
 		logrus.Fatal(err.Error())
 	}
 	os.Exit(m.Run())

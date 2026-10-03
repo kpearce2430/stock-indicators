@@ -18,6 +18,7 @@ const julDate = "2022001"
 const databaseName = "something"
 
 func TestLoadPortfolioValue(t *testing.T) {
+	t.Skip("portfolio values are no longer loaded from couchdb")
 	t.Setenv("PV_COUCHDB_DATABASE", databaseName)
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()

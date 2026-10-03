@@ -35,7 +35,6 @@ func (a *App) CreateSymbolDetailHandler(c *gin.Context) {
 	ws := worksheets.New(a.PGXConn)
 	ws.Lookups = a.LookupSet
 	ws.StockCache = a.StockCache
-	// ws.DividendCache = a.DividendCache
 
 	symbols := strings.Split(symbolsList, ",")
 

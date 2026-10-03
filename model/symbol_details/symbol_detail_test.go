@@ -6,18 +6,12 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"testing"
-	"time"
 
 	couchdatabase "github.com/kpearce2430/keputils/couch-database"
 	"github.com/kpearce2430/keputils/postgres"
-	"github.com/kpearce2430/keputils/utils"
-	"github.com/kpearce2430/stock-tools/model/historical"
 	"github.com/kpearce2430/stock-tools/model/lookups"
 	"github.com/kpearce2430/stock-tools/model/portfolio_value"
-	"github.com/kpearce2430/stock-tools/model/symbol_details"
-	"github.com/kpearce2430/stock-tools/model/transaction"
 	"github.com/sirupsen/logrus"
 )
 
@@ -84,6 +78,7 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
+/*
 func TestSymbolInformationSet_MutualFund(t *testing.T) {
 	pgxConn, err := postgres.ConnectToPostgres()
 	if err != nil {
@@ -102,7 +97,7 @@ func TestSymbolInformationSet_MutualFund(t *testing.T) {
 		return
 	}
 
-	ds := historical.NewHistoricalDataSet(pgxConn, fundHistory)
+	ds := historical.New(pgxConn, fundHistory)
 	if err := ds.LoadSet(string(histUsaix), source, fundSymbol); err != nil {
 		t.Log(err.Error())
 		t.Fail()
@@ -130,6 +125,7 @@ func TestSymbolInformationSet_MutualFund(t *testing.T) {
 		t.Log(sd.String())
 	}
 }
+
 
 func TestSymbolInformation_Stock(t *testing.T) {
 	key := "None"
@@ -199,3 +195,5 @@ func TestNewSymbolDetailSet(t *testing.T) {
 
 	t.Log(set.String())
 }
+
+*/

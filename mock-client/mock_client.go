@@ -2,7 +2,10 @@ package mock_client
 
 import (
 	"encoding/json"
+	"fmt"
+	"math/rand/v2"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/massive-com/client-go/v2/rest/models"
@@ -36,16 +39,37 @@ func (m *MockClient) GetData(ticker string, args ...string) ([]byte, error) {
 
 	today := time.Now().Format("2006-01-02")
 
+	value := rand.Float64() * 100
+	diffValue := rand.Float64()
+	negPos := rand.IntN(1)
+	var chgValue float64
+	switch negPos {
+	case 0:
+		chgValue = value + diffValue
+	default:
+		value = value - diffValue
+	}
+
+	value, err := strconv.ParseFloat(fmt.Sprintf("%.2f", value), 64)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	chgValue, err = strconv.ParseFloat(fmt.Sprintf("%.2f", chgValue), 64)
+	if err != nil {
+		return []byte{}, err
+	}
+
 	response := models.GetDailyOpenCloseAggResponse{
 		Symbol:     ticker,
 		From:       today,
-		Open:       271.78,
-		High:       274.94,
-		Low:        271.05,
-		Close:      274.23,
-		Volume:     33714342.626628,
-		AfterHours: 274.2,
-		PreMarket:  272,
+		Open:       value,
+		High:       chgValue,
+		Low:        chgValue,
+		Close:      chgValue,
+		Volume:     rand.Float64() * 1000000000,
+		AfterHours: chgValue,
+		PreMarket:  value,
 	}
 
 	bytes, err := json.Marshal(response)
@@ -53,7 +77,6 @@ func (m *MockClient) GetData(ticker string, args ...string) ([]byte, error) {
 	if err != nil {
 		return []byte{}, err
 	}
-
 	return bytes, nil
 }
 
